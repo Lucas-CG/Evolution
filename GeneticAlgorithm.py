@@ -3,42 +3,47 @@ import numpy as np
 def getSecond(ind):
     return ind[1]
 
+class MaxFESReached(Exception):
+    """Exception used to interrupt the GA operation when the maximum number of fitness evaluations is reached."""
+    pass
+
 class GeneticAlgorithm(object):
     """Implements a real-valued Genetic Algorithm."""
 
-    def __init__(self, func, bounds, popSize=100, randomPop=True, crit="min", eliteSize=0):
+    def __init__(self, func, bounds, popSize=100, crit="min", eliteSize=0, optimum=None, maxGen=1000, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function name (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
         - popSize: population size
-        - randomPop: initialize the population as random (uniform)
         - crit: criterion ("min" or "max")
-        - eliteSize: integer; defines whether elitism is enabled or not"""
+        - eliteSize: positive integer; defines whether elitism is enabled or not
+        - optimum: known optimum value for the objective function
+        - maxGen: maximum number of generations
+        - maxFES: maximum number of fitness evaluations.
+        If set to None, will be calculated as 10000 * [number of dimensions] = 10000 * len(bounds)"""
 
+        # Attribute initialization
+
+        # From arguments
         self.func = func
         self.bounds = bounds
         self.popSize = popSize
         self.randomPop = randomPop
         self.crit = crit
         self.eliteSize = eliteSize
+        self.optimum = optimum
+        self.maxGen = maxGen
 
-        # Internal attributes
+        if(maxFES): self.maxFES = maxFES
+        else: self.maxFES = 10000 * len(bounds)
 
+        # Control attributes
         self.pop = None
-
-        if( len(self.bounds[0]) != len(self.bounds[1]) ):
-            raise ValueError("The bound arrays have different sizes.")
-
-        if self.randomPop:
-            self.pop = [ [np.random.uniform(self.bounds[0], self.bounds[1]).tolist(), 0] for i in range(popSize) ] # genes, fitness
-            # tolist(): convert to python list
-
-        self.calculatedFits = False
         self.matingPool = None # used for parent selection
         self.children = None
         self.elite = None # used in elitism
         self.FES = 0 # function evaluations
-        self.itcount = 0
+        self.gencount = 0
         self.bestSoFar = 0
         self.mutation = None
         self.mutationParams = None
@@ -47,12 +52,14 @@ class GeneticAlgorithm(object):
         self.newPopSelection = None
         self.newPopSelectionParams = None
 
-    def setMutation(self, mutation, mutationParams):
-        """Configure the used mutation process. Parameters:
-        - mutation: a mutation function
-        - mutationParams: its parameters (a tuple)"""
-        self.mutation = mutation
-        self.mutationParams = mutationParams
+        if( len(self.bounds[0]) != len(self.bounds[1]) ):
+            raise ValueError("The bound arrays have different sizes.")
+
+        # Population initialization as random (uniform)
+        if self.randomPop:
+            self.pop = [ [np.random.uniform(self.bounds[0], self.bounds[1]).tolist(), 0] for i in range(popSize) ] # genes, fitness
+            self.calculateFitnessPop()
+            # tolist(): convert to python list
 
     def setCrossover(self, crossover, crossoverParams):
         """Configure the used mutation process. Parameters:
@@ -60,6 +67,14 @@ class GeneticAlgorithm(object):
         - crossoverParams: its parameters (a tuple)"""
         self.crossover = crossover
         self.crossoverParams = crossoverParams
+
+    def setMutation(self, mutation, mutationParams):
+        """Configure the used mutation process. Parameters:
+        - mutation: a mutation function
+        - mutationParams: its parameters (a tuple)
+        (Keep in mind that mutation functions also require an individual's index before the params)"""
+        self.mutation = mutation
+        self.mutationParams = mutationParams
 
     def setParentSelection(self, parentSelection, parentSelectionParams):
         """Configure the used parent selection process. Parameters:
@@ -75,6 +90,16 @@ class GeneticAlgorithm(object):
         self.newPopSelection = newPopSelection
         self.newPopSelectionParams = newPopSelectionParams
 
+    def run(self):
+
+        for i in range(self.maxGen):
+
+            try:
+                pass
+
+            except MaxFESReached:
+                pass
+
     def calculateFitnessPop(self):
         """Calculates the fitness values for the entire population."""
 
@@ -82,11 +107,7 @@ class GeneticAlgorithm(object):
             ind[1] = self.func(*ind[0])
             self.FES += 1
 
-        self.calculatedFits = True
-
-    def run(self):
-        #To do: define run
-        pass
+            if self.FES = self.maxFES: raise MaxFESReached
 
     def calculateFitnessInd(self, index):
         """Calculates the fitness values for a specific element (specified by index)."""
@@ -94,12 +115,12 @@ class GeneticAlgorithm(object):
             self.pop[index][1] = self.func(*self.pop[index][0])
             self.FES += 1
 
+            if self.FES = self.maxFES: raise MaxFESReached
+
     def getMax(self):
         """Finds the individuals with the highest fitness value of the population.
-        Returns (top, points) -> top = fitness value / points: list of the individuals' genes"""
-
-        if not self.calculatedFits:
-            self.calculateFitnessPop()
+        Returns (top, points) -> top = fitness value / points: list of the individuals' genes.
+        Execute after evaluating fitness values for the entire population!"""
 
         top = -np.inf
         points = []
@@ -119,10 +140,8 @@ class GeneticAlgorithm(object):
 
     def getMin(self):
         """Finds the individuals with the lowest fitness value of the population.
-        Returns (bottom, points) -> bottom = fitness value / points: list of the individuals' genes"""
-
-        if not self.calculatedFits:
-            self.calculateFitnessPop()
+        Returns (bottom, points) -> bottom = fitness value / points: list of the individuals' genes.
+        Execute after evaluating fitness values for the entire population!"""
 
         bottom = np.inf
         points = []
@@ -141,10 +160,7 @@ class GeneticAlgorithm(object):
         return (bottom, points)
 
     def getMean(self):
-        """Returns the population's mean fitness value."""
-
-        if not self.calculatedFits:
-            self.calculateFitnessPop()
+        """Returns the population's mean fitness value. Execute after evaluating fitness values for the entire population!"""
 
         total = 0
 
@@ -165,11 +181,7 @@ class GeneticAlgorithm(object):
         "bottom" to bottom value
         "bottomPoints" to a list of points with the bottom value
 
-        This function is intended to save iterations through the population, when
-        more than one iterative operation is necessary."""
-
-        if not self.calculatedFits:
-            self.calculateFitnessPop()
+        Execute after evaluating fitness values for the entire population!"""
 
         total = 0
         top = -np.inf
@@ -179,10 +191,10 @@ class GeneticAlgorithm(object):
 
         for i in range(self.popSize):
 
-            total += self.self.pop[i][1]
+            total += self.pop[i][1]
 
-            if (top < self.self.pop[i][1]):
-                top = self.self.pop[i][1]
+            if (top < self.pop[i][1]):
+                top = self.pop[i][1]
                 topPoints = [ self.pop[i][0] ]
 
             elif (top == self.fits[i]):
@@ -202,27 +214,27 @@ class GeneticAlgorithm(object):
 
         return {"avg": avg, "top": top, "topPoints": topPoints, "bottom": bottom, bottomPoints: "bottomPoints"}
 
-    def creepMutation(self, prob=0.05, mean=0, stdev=1, calculateFitness=False):
-        """Executes a creep mutation on the entire population. Use calculateFitness = True if you employ a non-generational
-        selection procedure just after the mutation."""
+    def creepMutation(self, index, prob=0.05, mean=0, stdev=1, calculateFitness=False):
+        """Executes a creep mutation on the individual with a specified index."""
 
-        for i in range(self.popSize):
+        changed = False
 
-            while True:
-                # adds a random value to the gene with a probability prob
-                newGenes = [ gene + np.random.normal(mean, stdev) if (np.random.uniform(0, 1) < prob) else gene for gene in self.pop[i][0] ]
+        while True:
+            # adds a random value to the gene with a probability prob
+            newGenes = [ gene + np.random.normal(mean, stdev) if (np.random.uniform(0, 1) < prob) else gene for gene in self.pop[index][0] ]
 
-                #redo bound check
-                if( self.isInBounds(self.pop[i]) ): self.pop[i][0] = newGenes
+            #redo bound check
+            if( self.isInBounds([newGenes, 0]) ):
+                self.pop[index][0] = newGenes
+                self.calculateFitnessInd(index)
 
-        if calculateFitness: self.calculateFitnessPop()
 
     def isInBounds(self, ind):
-        # Bound checking function for the genes. Used for mutation and crossover.
+        """Bound checking function for the genes. Used for mutation and crossover."""
 
-        for i in range( len(ind) ):
+        for i in range( len(ind[0]) ):
 
-            if not (self.bounds[0][i] <= ind[i] <= self.bounds[1][i]): return False
+            if not (self.bounds[0][i] <= ind[0][i] <= self.bounds[1][i]): return False
             # if this gene is in the bounds, inBounds keeps its True value.
             # else, it automatically returns False. Escaping to save up iterations.
 
@@ -231,9 +243,6 @@ class GeneticAlgorithm(object):
     def getElite(self):
 
         if self.eliteSize > 0:
-
-            if not self.calculatedFits:
-                self.calculateFitness()
 
             elite = None
 
@@ -247,11 +256,9 @@ class GeneticAlgorithm(object):
 
             self.elite = elite
 
-
     def tournamentSelection(self, crossover = True):
         # use with matingPool for parent selection
         # use with pop for post-crossover selection (non-generational selection schemes)
-        # elite is for elitism in post-crossover selection. number of individuals
 
         winners = []
 
@@ -269,11 +276,10 @@ class GeneticAlgorithm(object):
             winners.append(winner)
 
         if crossover: self.matingPool = winners
-
-        return winners
+        else: self.pop = winners # post-crossover selection determines the population
 
     def blxAlphaCrossover(self, alpha=0.5, crossProb=0.6):
-        # Define o BLX-α crossover para toda a população (ver página 25 do pdf - capítulo 3)
+        # Defines the BLX-α crossover for the mating pool. Creates an amount of children equal to the population size.
         if not self.matingPool:
             raise ValueError("There is no mating pool. Execute a selection function for it first.")
 
@@ -283,19 +289,33 @@ class GeneticAlgorithm(object):
 
             positions = np.random.randint(0, len(self.matingPool), 2)
             parent1, parent2 = self.matingPool[positions[0]], self.matingPool[positions[1]]
-            child = []
 
-            for j in range( len(parent1) ):
+            if (np.random.uniform(0, 1) < crossProb): # crossover executed with probability crossProb
 
-                while True:
-                    beta = ( np.random.uniform( -alpha, 1 + alpha ) )
-                    gene = parent1[j] + beta * (parent2[j] - parent1[j])
+                child = []
 
-                    if( self.bounds[0][j] <= gene <= self.bounds[1][j] ):
-                        child.append(gene)
-                        #Fora dos limites? Refazer.
+                for j in range( len(parent1) ):
 
-            children.append(child)
+                    genes = []
+
+                    while True:
+                        beta = ( np.random.uniform( -alpha, 1 + alpha ) )
+                        gene = parent1[j] + beta * (parent2[j] - parent1[j])
+
+                        if( self.bounds[0][j] <= gene <= self.bounds[1][j] ):
+                            genes.append(gene)
+                            #Fora dos limites? Refazer.
+
+                    child.append(genes)
+                    child.append(self.func(*genes))
+                    self.FES += 1
+                    if self.FES = self.maxFES: raise MaxFESReached
+
+                children.append(child)
+
+            else: #if it is not executed, the parents are given as children
+                children.append(parent1)
+                children.append(parent2)
 
         self.children = children
 
