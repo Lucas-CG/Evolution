@@ -1,7 +1,13 @@
 import numpy as np
 
-def test_f(x1, x2):
-    return abs(x1 + x2)
+def test_f(*args):
+    # Test function: N-dimensional sphere
+    result = 0
+
+    for x in args:
+        result += x**2
+
+    return result
 
 def getSecond(ind):
     return ind[1]
@@ -13,14 +19,14 @@ class MaxFESReached(Exception):
 class GeneticAlgorithm(object):
     """Implements a real-valued Genetic Algorithm."""
 
-    def __init__(self, func, bounds, popSize=100, crit="min", eliteSize=0, optimum=None, maxGen=1000, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=100, crit="min", eliteSize=0, optimum=0, maxGen=1000, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function name (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
         - popSize: population size
         - crit: criterion ("min" or "max")
         - eliteSize: positive integer; defines whether elitism is enabled or not
-        - optimum: known optimum value for the objective function
+        - optimum: known optimum value for the objective function. Default is 0.
         - maxGen: maximum number of generations
         - maxFES: maximum number of fitness evaluations.
         If set to None, will be calculated as 10000 * [number of dimensions] = 10000 * len(bounds)"""
@@ -35,9 +41,10 @@ class GeneticAlgorithm(object):
         self.eliteSize = eliteSize
         self.optimum = optimum
         self.maxGen = maxGen
+        self.tol = tol
 
         if(maxFES): self.maxFES = maxFES
-        else: self.maxFES = 10000 * len(bounds) # 10000 x [dimensions]
+        else: self.maxFES = 10000 * len(bounds[0]) # 10000 x [dimensions]
 
         # Control attributes
         self.pop = None
@@ -45,7 +52,7 @@ class GeneticAlgorithm(object):
         self.children = None
         self.elite = None # used in elitism
         self.FES = 0 # function evaluations
-        self.gencount = 0
+        self.genCount = 0
         self.bestSoFar = 0
         self.mutation = None
         self.mutationParams = None
@@ -91,7 +98,7 @@ class GeneticAlgorithm(object):
         self.newPopSelection = newPopSelection
         self.newPopSelectionParams = newPopSelectionParams
 
-    def run(self):
+    def execute(self):
 
         metrics = self.getFitnessMetrics() # post-initialization: generation 0
 
@@ -106,16 +113,7 @@ class GeneticAlgorithm(object):
         minPoints = [ metrics["bottomPoints"] ]
         avgFits = [ metrics["avg"] ]
 
-        generations.append(self.genCount)
-        FESCount.append()
-        errors.append()
-        maxFits.append()
-        maxPoints.append()
-        minFits.append()
-        minPoints.append()
-        avgFits.append()
-
-        while ( self.genCount < self.maxGen and abs(self.bestSoFar - self.optimum) > tol ):
+        while ( self.genCount < self.maxGen and abs(self.bestSoFar - self.optimum) > self.tol ):
 
             if(self.parentSelectionParams): self.parentSelection(*self.parentSelectionParams) # tem parâmetro definido?
             else: self.parentSelection() # se não tiver, roda sem.
@@ -129,7 +127,6 @@ class GeneticAlgorithm(object):
                 #Exit the loop, going to the result saving part
 
             try:
-
                 for index in range( len(self.children) ):
                     if(self.mutationParams): self.mutation(index, *self.mutationParams)
                     else: self.mutation(index)
@@ -281,13 +278,11 @@ class GeneticAlgorithm(object):
         return {"avg": avg, "top": top, "topPoints": topPoints, "bottom": bottom, "bottomPoints": bottomPoints, "error": error}
 
     def creepMutation(self, index, prob=0.05, mean=0, stdev=1):
-        """Executes a creep mutation on the individual with a specified index."""
-
-        changed = False
+        """Executes a creep mutation on the individual (child) with a specified index."""
 
         while True:
             # adds a random value to the gene with a probability prob
-            newGenes = [ gene + np.random.normal(mean, stdev) if (np.random.uniform(0, 1) < prob) else gene for gene in self.pop[index][0] ]
+            newGenes = [ gene + np.random.normal(mean, stdev) if (np.random.uniform(0, 1) < prob) else gene for gene in self.children[index][0] ]
 
             #redo bound check
             if( self.isInBounds([newGenes, 0]) ):
@@ -296,6 +291,7 @@ class GeneticAlgorithm(object):
 
                     self.pop[index][0] = newGenes
                     self.calculateFitnessInd(index)
+                    break
 
     def isInBounds(self, ind):
         """Bound checking function for the genes. Used for mutation and crossover."""
@@ -338,7 +334,7 @@ class GeneticAlgorithm(object):
 
             positions = np.random.randint(0, len(self.pop), 2)
             # len(self.pop) because the population may have children (larger than self.popSize)
-            ind1, ind2 = pop[positions[0]], pop[positions[1]]
+            ind1, ind2 = self.pop[positions[0]], self.pop[positions[1]]
             if self.crit == "min": winner = ind1 if ind1[1] <= ind2[1] else ind2 # compara valores de f. escolhe o de menor aptidão
             else: winner = ind1 if ind1[1] >= ind2[1] else ind2 # compara valores de f. escolhe o de menor aptidão
             winners.append(winner)
@@ -361,29 +357,29 @@ class GeneticAlgorithm(object):
             if (np.random.uniform(0, 1) < crossProb): # crossover executed with probability crossProb
 
                 child = []
+                genes = []
 
-                for j in range( len(parent1) ):
-
-                    genes = []
+                for j in range( len(parent1[0]) ): # iterate through its genes
 
                     while True:
                         beta = ( np.random.uniform( -alpha, 1 + alpha ) )
-                        gene = parent1[j] + beta * (parent2[j] - parent1[j])
+                        gene = parent1[0][j] + beta * (parent2[0][j] - parent1[0][j])
 
                         if( self.bounds[0][j] <= gene <= self.bounds[1][j] ):
                             genes.append(gene)
+                            break
                             #Fora dos limites? Refazer.
 
-                    child.append(genes)
-                    child.append(self.func(*genes))
-                    self.FES += 1
-                    if self.FES == self.maxFES: raise MaxFESReached
+                child.append(genes)
+                child.append(self.func(*genes))
+                self.FES += 1
+                if self.FES == self.maxFES: raise MaxFESReached
 
                 children.append(child)
 
-            else: #if it is not executed, the parents are given as children
-                children.append(parent1)
-                children.append(parent2)
+            else: #if it is not executed, the parent with the best fitness is given as a child
+                if self.crit == "min": children.append(parent1) if parent1[1] <= parent2[1] else children.append(parent2) # compara valores de f. escolhe o de menor aptidão
+                else: children.append(parent1) if parent1[1] >= parent2[1] else children.append(parent2) # compara valores de f. escolhe o de menor aptidão
 
         self.children = children
 
@@ -395,15 +391,18 @@ class GeneticAlgorithm(object):
 
 if __name__ == '__main__':
 
-    bounds = [ [-100, -100], [100, 100] ]
+    bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
 
     # Initialization
-    GA = GeneticAlgorithm(test_f, bounds)
-
-    # test population generation
-    print(GA.pop)
+    GA = GeneticAlgorithm(test_f, bounds, eliteSize=15, popSize=100)
 
     # test setting of methods
-    GA.setParentSelection(GA.tournamentSelection, (True) )
+    GA.setParentSelection(GA.tournamentSelection, [True] )
     GA.setCrossover(GA.blxAlphaCrossover, None)
     GA.setMutation(GA.creepMutation, None)
+    GA.setNewPopSelection(GA.generationalSelection, None)
+    results = GA.execute()
+
+    print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) + " (points " +
+    str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    " and " + str(results["FESCount"][-1]) + " fitness evaluations" )
