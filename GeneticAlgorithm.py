@@ -1,5 +1,8 @@
 import numpy as np
 
+def test_f(x1, x2):
+    return abs(x1 + x2)
+
 def getSecond(ind):
     return ind[1]
 
@@ -28,14 +31,13 @@ class GeneticAlgorithm(object):
         self.func = func
         self.bounds = bounds
         self.popSize = popSize
-        self.randomPop = randomPop
         self.crit = crit
         self.eliteSize = eliteSize
         self.optimum = optimum
         self.maxGen = maxGen
 
         if(maxFES): self.maxFES = maxFES
-        else: self.maxFES = 10000 * len(bounds)
+        else: self.maxFES = 10000 * len(bounds) # 10000 x [dimensions]
 
         # Control attributes
         self.pop = None
@@ -56,10 +58,16 @@ class GeneticAlgorithm(object):
             raise ValueError("The bound arrays have different sizes.")
 
         # Population initialization as random (uniform)
-        if self.randomPop:
-            self.pop = [ [np.random.uniform(self.bounds[0], self.bounds[1]).tolist(), 0] for i in range(popSize) ] # genes, fitness
-            self.calculateFitnessPop()
-            # tolist(): convert to python list
+        self.pop = [ [np.random.uniform(self.bounds[0], self.bounds[1]).tolist(), 0] for i in range(popSize) ] # genes, fitness
+        self.calculateFitnessPop()
+        # tolist(): convert to python list
+
+    def setParentSelection(self, parentSelection, parentSelectionParams):
+        """Configure the used parent selection process. Parameters:
+        - parentSelection: a selection function
+        - parentSelectionParams: its parameters (a tuple)"""
+        self.parentSelection = parentSelection
+        self.parentSelectionParams = parentSelectionParams
 
     def setCrossover(self, crossover, crossoverParams):
         """Configure the used mutation process. Parameters:
@@ -72,16 +80,9 @@ class GeneticAlgorithm(object):
         """Configure the used mutation process. Parameters:
         - mutation: a mutation function
         - mutationParams: its parameters (a tuple)
-        (Keep in mind that mutation functions also require an individual's index before the params)"""
+        (Keep in mind that mutation functions also require an (integer) individual's index before the params)"""
         self.mutation = mutation
         self.mutationParams = mutationParams
-
-    def setParentSelection(self, parentSelection, parentSelectionParams):
-        """Configure the used parent selection process. Parameters:
-        - parentSelection: a selection function
-        - parentSelectionParams: its parameters (a tuple)"""
-        self.parentSelection = parentSelection
-        self.parentSelectionParams = parentSelectionParams
 
     def setNewPopSelection(self, newPopSelection, newPopSelectionParams):
         """Configure the used new population selection process. Parameters:
@@ -92,13 +93,76 @@ class GeneticAlgorithm(object):
 
     def run(self):
 
-        for i in range(self.maxGen):
+        metrics = self.getFitnessMetrics() # post-initialization: generation 0
+
+        # Arrays for collecting metrics
+
+        generations = [ self.genCount ]
+        FESCount = [ self.FES ]
+        errors = [ metrics["error"] ]
+        maxFits = [ metrics["top"] ]
+        maxPoints = [ metrics["topPoints"] ]
+        minFits = [ metrics["bottom"] ]
+        minPoints = [ metrics["bottomPoints"] ]
+        avgFits = [ metrics["avg"] ]
+
+        generations.append(self.genCount)
+        FESCount.append()
+        errors.append()
+        maxFits.append()
+        maxPoints.append()
+        minFits.append()
+        minPoints.append()
+        avgFits.append()
+
+        while ( self.genCount < self.maxGen and abs(self.bestSoFar - self.optimum) > tol ):
+
+            if(self.parentSelectionParams): self.parentSelection(*self.parentSelectionParams) # tem parâmetro definido?
+            else: self.parentSelection() # se não tiver, roda sem.
 
             try:
-                pass
+                if(self.crossoverParams): self.crossover(*self.crossoverParams)
+                else: self.crossover()
 
             except MaxFESReached:
-                pass
+                break
+                #Exit the loop, going to the result saving part
+
+            try:
+
+                for index in range( len(self.children) ):
+                    if(self.mutationParams): self.mutation(index, *self.mutationParams)
+                    else: self.mutation(index)
+
+            except MaxFESReached:
+                break
+
+            self.getElite() # gets the best values if self.eliteSize > 0; does nothing otherwise
+
+            if(self.newPopSelectionParams): self.newPopSelection(*self.newPopSelectionParams)
+            else: self.newPopSelection()
+
+            metrics = self.getFitnessMetrics()
+
+            self.genCount += 1
+
+            generations.append(self.genCount)
+            FESCount.append(self.FES)
+            errors.append(metrics["error"])
+            maxFits.append(metrics["top"])
+            maxPoints.append(metrics["topPoints"])
+            minFits.append(metrics["bottom"])
+            minPoints.append(metrics["bottomPoints"])
+            avgFits.append(metrics["avg"])
+
+        return {"generations": generations,
+                "FESCount": FESCount,
+                "errors": errors,
+                "maxFits": maxFits,
+                "maxPoints": maxPoints,
+                "minFits": minFits,
+                "minPoints": minPoints,
+                "avgFits": avgFits}
 
     def calculateFitnessPop(self):
         """Calculates the fitness values for the entire population."""
@@ -107,15 +171,15 @@ class GeneticAlgorithm(object):
             ind[1] = self.func(*ind[0])
             self.FES += 1
 
-            if self.FES = self.maxFES: raise MaxFESReached
+            if self.FES == self.maxFES: raise MaxFESReached
 
     def calculateFitnessInd(self, index):
         """Calculates the fitness values for a specific element (specified by index)."""
 
-            self.pop[index][1] = self.func(*self.pop[index][0])
-            self.FES += 1
+        self.pop[index][1] = self.func(*self.pop[index][0])
+        self.FES += 1
 
-            if self.FES = self.maxFES: raise MaxFESReached
+        if self.FES == self.maxFES: raise MaxFESReached
 
     def getMax(self):
         """Finds the individuals with the highest fitness value of the population.
@@ -197,7 +261,7 @@ class GeneticAlgorithm(object):
                 top = self.pop[i][1]
                 topPoints = [ self.pop[i][0] ]
 
-            elif (top == self.fits[i]):
+            elif (top == self.pop[i][1]):
                 topPoints.append(self.pop[i][0])
 
             if (bottom > self.pop[i][1]):
@@ -212,9 +276,11 @@ class GeneticAlgorithm(object):
         if(self.crit == "min"): self.bestSoFar = bottom
         if(self.crit == "max"): self.bestSoFar = top
 
-        return {"avg": avg, "top": top, "topPoints": topPoints, "bottom": bottom, bottomPoints: "bottomPoints"}
+        error = abs(self.bestSoFar - self.optimum)
 
-    def creepMutation(self, index, prob=0.05, mean=0, stdev=1, calculateFitness=False):
+        return {"avg": avg, "top": top, "topPoints": topPoints, "bottom": bottom, "bottomPoints": bottomPoints, "error": error}
+
+    def creepMutation(self, index, prob=0.05, mean=0, stdev=1):
         """Executes a creep mutation on the individual with a specified index."""
 
         changed = False
@@ -225,9 +291,11 @@ class GeneticAlgorithm(object):
 
             #redo bound check
             if( self.isInBounds([newGenes, 0]) ):
-                self.pop[index][0] = newGenes
-                self.calculateFitnessInd(index)
 
+                if(self.pop[index][0] != newGenes):
+
+                    self.pop[index][0] = newGenes
+                    self.calculateFitnessInd(index)
 
     def isInBounds(self, ind):
         """Bound checking function for the genes. Used for mutation and crossover."""
@@ -246,7 +314,7 @@ class GeneticAlgorithm(object):
 
             elite = None
 
-            if self.crit = "max":
+            if self.crit == "max":
                 self.pop.sort(key = getSecond, reverse = True) # ordena pelo valor de f em ordem decrescente
                 elite = self.pop[:self.eliteSize]
 
@@ -309,7 +377,7 @@ class GeneticAlgorithm(object):
                     child.append(genes)
                     child.append(self.func(*genes))
                     self.FES += 1
-                    if self.FES = self.maxFES: raise MaxFESReached
+                    if self.FES == self.maxFES: raise MaxFESReached
 
                 children.append(child)
 
@@ -321,5 +389,21 @@ class GeneticAlgorithm(object):
 
         if(self.newPopSelection != self.generationalSelection): self.pop.extend(self.children)
 
-    def generationalSelection():
+    def generationalSelection(self):
         self.pop = self.children
+
+
+if __name__ == '__main__':
+
+    bounds = [ [-100, -100], [100, 100] ]
+
+    # Initialization
+    GA = GeneticAlgorithm(test_f, bounds)
+
+    # test population generation
+    print(GA.pop)
+
+    # test setting of methods
+    GA.setParentSelection(GA.tournamentSelection, (True) )
+    GA.setCrossover(GA.blxAlphaCrossover, None)
+    GA.setMutation(GA.creepMutation, None)
