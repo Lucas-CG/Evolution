@@ -60,6 +60,7 @@ class GeneticAlgorithm(object):
         self.parentSelectionParams = None
         self.newPopSelection = None
         self.newPopSelectionParams = None
+        self.results = None
 
         if( len(self.bounds[0]) != len(self.bounds[1]) ):
             raise ValueError("The bound arrays have different sizes.")
@@ -152,7 +153,7 @@ class GeneticAlgorithm(object):
             minPoints.append(metrics["bottomPoints"])
             avgFits.append(metrics["avg"])
 
-        return {"generations": generations,
+            self.results = {"generations": generations,
                 "FESCount": FESCount,
                 "errors": errors,
                 "maxFits": maxFits,
@@ -391,18 +392,66 @@ class GeneticAlgorithm(object):
 
 if __name__ == '__main__':
 
+    import time
+
     bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
 
-    # Initialization
-    GA = GeneticAlgorithm(test_f, bounds, eliteSize=15, popSize=100)
+    start = time.time()
 
-    # test setting of methods
-    GA.setParentSelection(GA.tournamentSelection, [True] )
-    GA.setCrossover(GA.blxAlphaCrossover, None)
-    GA.setMutation(GA.creepMutation, None)
-    GA.setNewPopSelection(GA.generationalSelection, None)
-    results = GA.execute()
+    for i in range(10):
 
-    print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) + " (points " +
-    str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
-    " and " + str(results["FESCount"][-1]) + " fitness evaluations" )
+        # Initialization
+        GA = GeneticAlgorithm(test_f, bounds, eliteSize=15, popSize=100)
+
+        # test setting of methods
+        GA.setParentSelection(GA.tournamentSelection, (True,) )
+        GA.setCrossover(GA.blxAlphaCrossover, None)
+        GA.setMutation(GA.creepMutation, None)
+        GA.setNewPopSelection(GA.generationalSelection, None)
+        GA.execute()
+        results = GA.results
+
+        # print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) + " (points " +
+        # str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+        # " and " + str(results["FESCount"][-1]) + " fitness evaluations" )
+
+    end = time.time()
+    print("serial (10 runs): " + str(end - start))
+
+    # parallel tests
+
+    from multiprocessing import Process
+
+    processList = []
+    GAList = []
+
+    start = time.time()
+
+    for i in range(10):
+
+        # Initialization
+        GA = GeneticAlgorithm(test_f, bounds, eliteSize=15, popSize=100)
+
+        # test setting of methods
+        GA.setParentSelection(GA.tournamentSelection, (True,) )
+        GA.setCrossover(GA.blxAlphaCrossover, None)
+        GA.setMutation(GA.creepMutation, None)
+        GA.setNewPopSelection(GA.generationalSelection, None)
+        GAList.append(GA)
+
+        processList.append( Process( target = GAList[-1].execute() ) )
+
+    for process in processList:
+        process.start()
+
+    for process in processList:
+        process.join()
+
+    # for GA in GAList:
+    #
+    #     print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) + " (points " +
+    #     str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    #     " and " + str(results["FESCount"][-1]) + " fitness evaluations" )
+
+    end = time.time()
+    print("parallel (10 runs): " + str(end - start))
