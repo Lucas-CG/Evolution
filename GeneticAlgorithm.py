@@ -398,12 +398,11 @@ if __name__ == '__main__':
 
     start = time.time()
 
-    for i in range(25):
+    for i in range(3):
 
         # Initialization
         GA = GeneticAlgorithm(test_f, bounds, eliteSize=5, popSize=100)
 
-        # test setting of methods
         GA.setParentSelection(GA.tournamentSelection, (True,) )
         GA.setCrossover(GA.blxAlphaCrossover, None)
         GA.setMutation(GA.creepMutation, None)
@@ -420,9 +419,9 @@ if __name__ == '__main__':
 
     # parallel tests
 
-    from multiprocessing import Process
+    import multiprocessing as mp
+    import copy
 
-    processList = []
     GAList = []
 
     start = time.time()
@@ -432,22 +431,20 @@ if __name__ == '__main__':
         # Initialization
         GA = GeneticAlgorithm(test_f, bounds, eliteSize=5, popSize=100)
 
-        # test setting of methods
         GA.setParentSelection(GA.tournamentSelection, (True,) )
         GA.setCrossover(GA.blxAlphaCrossover, None)
         GA.setMutation(GA.creepMutation, None)
         GA.setNewPopSelection(GA.generationalSelection, None)
         GAList.append(GA)
 
-        processList.append( Process( target = GAList[-1].execute() ) )
+    def run_ga(GA):
+        GA.execute()
+        return GA.results
 
-    for process in processList:
-        process.start()
+    with mp.Pool(25) as p:
+        resultsList = p.map(run_ga, GAList)
 
-    for process in processList:
-        process.join()
-
-    for GA in GAList:
+    for results in resultsList:
 
         print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) + " (points " +
         str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
