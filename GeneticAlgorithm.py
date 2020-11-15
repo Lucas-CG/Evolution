@@ -324,9 +324,24 @@ class GeneticAlgorithm(object):
 
         while len(winners) < self.popSize:
 
-            positions = np.random.randint(0, len(self.pop), 2)
             # len(self.pop) because the population may have children (larger than self.popSize)
-            ind1, ind2 = self.pop[positions[0]], self.pop[positions[1]]
+            ind1, ind2 = None, None
+            copy = True
+
+            while copy:
+
+                position1 = np.random.randint(0, len(self.pop))
+                ind1 = self.pop[position1]
+                if ind1 not in winners: copy = False
+
+            copy = True
+
+            while copy:
+
+                position2 = np.random.randint(0, len(self.pop))
+                ind2 = self.pop[position2]
+                if ind2 not in winners: copy = False
+
             if self.crit == "min": winner = ind1 if ind1[1] <= ind2[1] else ind2 # compara valores de f. escolhe o de menor aptidão
             else: winner = ind1 if ind1[1] >= ind2[1] else ind2 # compara valores de f. escolhe o de menor aptidão
             winners.append(winner)
@@ -393,7 +408,7 @@ class GeneticAlgorithm(object):
             while len(newPop) < self.popSize:
 
                 i = 0
-                newPop.append(self.children[i])
+                if self.children[i] not in newPop: newPop.append(self.children[i])
 
             self.pop = newPop
 
