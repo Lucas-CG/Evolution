@@ -1,13 +1,5 @@
 import numpy as np
-
-def test_f(*args):
-    # Test function: N-dimensional sphere
-    result = 0
-
-    for x in args:
-        result += x**2
-
-    return result
+from optproblems import cec2005
 
 def getSecond(ind):
     return ind[1]
@@ -19,7 +11,7 @@ class MaxFESReached(Exception):
 class GeneticAlgorithm(object):
     """Implements a real-valued Genetic Algorithm."""
 
-    def __init__(self, func, bounds, popSize=100, crit="min", eliteSize=0, optimum=0, maxGen=1000, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=100, crit="min", eliteSize=0, optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function name (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
@@ -27,7 +19,6 @@ class GeneticAlgorithm(object):
         - crit: criterion ("min" or "max")
         - eliteSize: positive integer; defines whether elitism is enabled or not
         - optimum: known optimum value for the objective function. Default is 0.
-        - maxGen: maximum number of generations
         - maxFES: maximum number of fitness evaluations.
         If set to None, will be calculated as 10000 * [number of dimensions] = 10000 * len(bounds)"""
 
@@ -40,7 +31,6 @@ class GeneticAlgorithm(object):
         self.crit = crit
         self.eliteSize = eliteSize
         self.optimum = optimum
-        self.maxGen = maxGen
         self.tol = tol
 
         if(maxFES): self.maxFES = maxFES
@@ -101,6 +91,8 @@ class GeneticAlgorithm(object):
 
     def execute(self):
 
+        self.getElite() # gets the best values if self.eliteSize > 0; does nothing otherwise
+
         metrics = self.getFitnessMetrics() # post-initialization: generation 0
 
         # Arrays for collecting metrics
@@ -114,7 +106,7 @@ class GeneticAlgorithm(object):
         minPoints = [ metrics["bottomPoints"] ]
         avgFits = [ metrics["avg"] ]
 
-        while ( self.genCount < self.maxGen and abs(self.bestSoFar - self.optimum) > self.tol ):
+        while ( abs(self.bestSoFar - self.optimum) > self.tol ):
 
             if(self.parentSelectionParams): self.parentSelection(*self.parentSelectionParams) # tem parâmetro definido?
             else: self.parentSelection() # se não tiver, roda sem.
@@ -134,8 +126,6 @@ class GeneticAlgorithm(object):
 
             except MaxFESReached:
                 break
-
-            self.getElite() # gets the best values if self.eliteSize > 0; does nothing otherwise
 
             if(self.newPopSelectionParams): self.newPopSelection(*self.newPopSelectionParams)
             else: self.newPopSelection()
@@ -166,7 +156,7 @@ class GeneticAlgorithm(object):
         """Calculates the fitness values for the entire population."""
 
         for ind in self.pop:
-            ind[1] = self.func(*ind[0])
+            ind[1] = self.func(ind[0])
             self.FES += 1
 
             if self.FES == self.maxFES: raise MaxFESReached
@@ -174,7 +164,7 @@ class GeneticAlgorithm(object):
     def calculateFitnessInd(self, index):
         """Calculates the fitness values for a specific element (specified by index)."""
 
-        self.pop[index][1] = self.func(*self.pop[index][0])
+        self.pop[index][1] = self.func(self.pop[index][0])
         self.FES += 1
 
         if self.FES == self.maxFES: raise MaxFESReached
@@ -292,7 +282,8 @@ class GeneticAlgorithm(object):
 
                     self.pop[index][0] = newGenes
                     self.calculateFitnessInd(index)
-                    break
+
+                break
 
     def isInBounds(self, ind):
         """Bound checking function for the genes. Used for mutation and crossover."""
@@ -328,8 +319,8 @@ class GeneticAlgorithm(object):
         winners = []
 
         if(not crossover and self.elite): # if there is an elite and it is not a crossover selection...
-            for ind in elite:
-                winners.extend(elite)
+            for ind in self.elite:
+                winners.extend(self.elite)
 
         while len(winners) < self.popSize:
 
@@ -372,7 +363,7 @@ class GeneticAlgorithm(object):
                             #Fora dos limites? Refazer.
 
                 child.append(genes)
-                child.append(self.func(*genes))
+                child.append(self.func(genes))
                 self.FES += 1
                 if self.FES == self.maxFES: raise MaxFESReached
 
@@ -387,7 +378,27 @@ class GeneticAlgorithm(object):
         if(self.newPopSelection != self.generationalSelection): self.pop.extend(self.children)
 
     def generationalSelection(self):
-        self.pop = self.children
+
+        if self.eliteSize > 0:
+
+            if self.crit == "max":
+                self.children.sort(key = getSecond, reverse = True) # ordena pelo valor de f em ordem decrescente
+
+            else:
+                self.children.sort(key = getSecond, reverse = False) # ordena pelo valor de f em ordem crescente
+
+            newPop = []
+            newPop.extend(self.elite)
+
+            while len(newPop) < self.popSize:
+
+                i = 0
+                newPop.append(self.children[i])
+
+            self.pop = newPop
+
+        else:
+            self.pop = self.children
 
 
 if __name__ == '__main__':
@@ -398,14 +409,15 @@ if __name__ == '__main__':
 
     start = time.time()
 
-    for i in range(3):
+    for i in range(1):
 
         # Initialization
-        GA = GeneticAlgorithm(test_f, bounds, eliteSize=5, popSize=100)
+        GA = GeneticAlgorithm(cec2005.F1(10), bounds, eliteSize=1, popSize=100)
 
         GA.setParentSelection(GA.tournamentSelection, (True,) )
-        GA.setCrossover(GA.blxAlphaCrossover, None)
-        GA.setMutation(GA.creepMutation, None)
+        GA.setCrossover(GA.blxAlphaCrossover, (0.5, 0.6))
+        GA.setMutation(GA.creepMutation, (0.01, ))
+        # GA.setNewPopSelection(GA.tournamentSelection, (False, ))
         GA.setNewPopSelection(GA.generationalSelection, None)
         GA.execute()
         results = GA.results
@@ -415,40 +427,4 @@ if __name__ == '__main__':
         " and " + str(results["FESCount"][-1]) + " fitness evaluations" )
 
     end = time.time()
-    print("serial (25 runs): " + str(end - start))
-
-    # parallel tests
-
-    import multiprocessing as mp
-    import copy
-
-    GAList = []
-
-    start = time.time()
-
-    for i in range(25):
-
-        # Initialization
-        GA = GeneticAlgorithm(test_f, bounds, eliteSize=5, popSize=100)
-
-        GA.setParentSelection(GA.tournamentSelection, (True,) )
-        GA.setCrossover(GA.blxAlphaCrossover, None)
-        GA.setMutation(GA.creepMutation, None)
-        GA.setNewPopSelection(GA.generationalSelection, None)
-        GAList.append(GA)
-
-    def run_ga(GA):
-        GA.execute()
-        return GA.results
-
-    with mp.Pool(25) as p:
-        resultsList = p.map(run_ga, GAList)
-
-    for results in resultsList:
-
-        print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) + " (points " +
-        str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
-        " and " + str(results["FESCount"][-1]) + " fitness evaluations" )
-
-    end = time.time()
-    print("parallel (25 runs): " + str(end - start))
+    print("time:" + str(end - start))
