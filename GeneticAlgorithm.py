@@ -398,10 +398,10 @@ if __name__ == '__main__':
 
     start = time.time()
 
-    for i in range(10):
+    for i in range(25):
 
         # Initialization
-        GA = GeneticAlgorithm(test_f, bounds, eliteSize=15, popSize=100)
+        GA = GeneticAlgorithm(test_f, bounds, eliteSize=5, popSize=100)
 
         # test setting of methods
         GA.setParentSelection(GA.tournamentSelection, (True,) )
@@ -411,12 +411,12 @@ if __name__ == '__main__':
         GA.execute()
         results = GA.results
 
-        # print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) + " (points " +
-        # str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
-        # " and " + str(results["FESCount"][-1]) + " fitness evaluations" )
+        print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) + " (points " +
+        str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+        " and " + str(results["FESCount"][-1]) + " fitness evaluations" )
 
     end = time.time()
-    print("serial (10 runs): " + str(end - start))
+    print("serial (25 runs): " + str(end - start))
 
     # parallel tests
 
@@ -427,10 +427,10 @@ if __name__ == '__main__':
 
     start = time.time()
 
-    for i in range(10):
+    for i in range(25):
 
         # Initialization
-        GA = GeneticAlgorithm(test_f, bounds, eliteSize=15, popSize=100)
+        GA = GeneticAlgorithm(test_f, bounds, eliteSize=5, popSize=100)
 
         # test setting of methods
         GA.setParentSelection(GA.tournamentSelection, (True,) )
@@ -447,11 +447,11 @@ if __name__ == '__main__':
     for process in processList:
         process.join()
 
-    # for GA in GAList:
-    #
-    #     print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) + " (points " +
-    #     str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
-    #     " and " + str(results["FESCount"][-1]) + " fitness evaluations" )
+    for GA in GAList:
+
+        print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) + " (points " +
+        str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+        " and " + str(results["FESCount"][-1]) + " fitness evaluations" )
 
     end = time.time()
-    print("parallel (10 runs): " + str(end - start))
+    print("parallel (25 runs): " + str(end - start))
