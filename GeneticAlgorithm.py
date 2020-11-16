@@ -143,7 +143,7 @@ class GeneticAlgorithm(object):
             avgFits.append(metrics["avg"])
 
             self.results = {"generations": generations,
-                "FESCount": FESCount,
+                "FESCounts": FESCount,
                 "errors": errors,
                 "maxFits": maxFits,
                 "maxPoints": maxPoints,
@@ -419,7 +419,7 @@ if __name__ == '__main__':
 
     print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
     " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
-    " and " + str(results["FESCount"][-1]) + " fitness evaluations" )
+    " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
 
     end = time.time()
     print("time:" + str(end - start))
