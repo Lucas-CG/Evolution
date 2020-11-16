@@ -324,24 +324,9 @@ class GeneticAlgorithm(object):
 
         while len(winners) < self.popSize:
 
+            positions = np.random.randint(0, len(self.pop), 2)
             # len(self.pop) because the population may have children (larger than self.popSize)
-            ind1, ind2 = None, None
-            copy = True
-
-            while copy:
-
-                position1 = np.random.randint(0, len(self.pop))
-                ind1 = self.pop[position1]
-                if ind1 not in winners: copy = False
-
-            copy = True
-
-            while copy:
-
-                position2 = np.random.randint(0, len(self.pop))
-                ind2 = self.pop[position2]
-                if ind2 not in winners: copy = False
-
+            ind1, ind2 = self.pop[positions[0]], self.pop[positions[1]]
             if self.crit == "min": winner = ind1 if ind1[1] <= ind2[1] else ind2 # compara valores de f. escolhe o de menor aptidão
             else: winner = ind1 if ind1[1] >= ind2[1] else ind2 # compara valores de f. escolhe o de menor aptidão
             winners.append(winner)
@@ -404,13 +389,8 @@ class GeneticAlgorithm(object):
 
             newPop = []
             newPop.extend(self.elite)
-
-            while len(newPop) < self.popSize:
-
-                i = 0
-                if self.children[i] not in newPop: newPop.append(self.children[i])
-
-            self.pop = newPop
+            newPop.extend(self.children)
+            self.pop = newPop[:self.popSize] # cutting out the worst individuals
 
         else:
             self.pop = self.children
@@ -427,18 +407,18 @@ if __name__ == '__main__':
     for i in range(1):
 
         # Initialization
-        GA = GeneticAlgorithm(cec2005.F1(10), bounds, eliteSize=1, popSize=100)
+        GA = GeneticAlgorithm(cec2005.F1(10), bounds, eliteSize=1, popSize=50)
 
         GA.setParentSelection(GA.tournamentSelection, (True,) )
-        GA.setCrossover(GA.blxAlphaCrossover, (0.5, 0.6))
-        GA.setMutation(GA.creepMutation, (0.01, ))
-        # GA.setNewPopSelection(GA.tournamentSelection, (False, ))
-        GA.setNewPopSelection(GA.generationalSelection, None)
+        GA.setCrossover(GA.blxAlphaCrossover, (0.5, 0.6)) # alpha, prob
+        GA.setMutation(GA.creepMutation, (0.05, 0, 1)) # prob, mean, sigma
+        GA.setNewPopSelection(GA.tournamentSelection, (False, ))
+        # GA.setNewPopSelection(GA.generationalSelection, None)
         GA.execute()
         results = GA.results
 
-        print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) + " (points " +
-        str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+        print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
+        " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
         " and " + str(results["FESCount"][-1]) + " fitness evaluations" )
 
     end = time.time()
