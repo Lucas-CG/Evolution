@@ -10,13 +10,12 @@ class MaxFESReached(Exception):
 class DifferentialEvolution(object):
     """Implements a real-valued Differential Evolution."""
 
-    def __init__(self, func, bounds, popSize=100, crit="min", eliteSize=0, optimum=-450, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=100, crit="min", optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function name (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
         - popSize: population size
         - crit: criterion ("min" or "max")
-        - eliteSize: positive integer; defines whether elitism is enabled or not
         - optimum: known optimum value for the objective function. Default is 0.
         - maxFES: maximum number of fitness evaluations.
         If set to None, will be calculated as 10000 * [number of dimensions] = 10000 * len(bounds)"""
@@ -28,7 +27,6 @@ class DifferentialEvolution(object):
         self.bounds = bounds
         self.popSize = popSize
         self.crit = crit
-        self.eliteSize = eliteSize
         self.optimum = optimum
         self.tol = tol
 
@@ -37,34 +35,23 @@ class DifferentialEvolution(object):
 
         # Control attributes
         self.pop = None
-        self.matingPool = None # used for parent selection
-        self.children = None
-        self.elite = None # used in elitism
+        self.mutedPop = None
+        self.crossedPop = None
         self.FES = 0 # function evaluations
         self.genCount = 0
         self.bestSoFar = 0
+        self.bestIndex = 0 # index of the best individual in the population
         self.mutation = None
         self.mutationParams = None
-        self.parentSelection = None
-        self.parentSelectionParams = None
-        self.newPopSelection = None
-        self.newPopSelectionParams = None
         self.results = None
 
         if( len(self.bounds[0]) != len(self.bounds[1]) ):
             raise ValueError("The bound arrays have different sizes.")
 
         # Population initialization as random (uniform)
-        self.pop = [ [np.random.uniform(self.bounds[0], self.bounds[1]).tolist(), 0] for i in range(popSize) ] # genes, fitness
+        self.pop = [ [np.random.uniform(self.bounds[0], self.bounds[1]), 0] for i in range(popSize) ] # genes, fitness
         self.calculateFitnessPop()
-        # tolist(): convert to python list
-
-    def setParentSelection(self, parentSelection, parentSelectionParams):
-        """Configure the used parent selection process. Parameters:
-        - parentSelection: a selection function
-        - parentSelectionParams: its parameters (a tuple)"""
-        self.parentSelection = parentSelection
-        self.parentSelectionParams = parentSelectionParams
+        # individuals' parameters are numpy arrays
 
     def setCrossover(self, crossover, crossoverParams):
         """Configure the used mutation process. Parameters:
@@ -81,16 +68,7 @@ class DifferentialEvolution(object):
         self.mutation = mutation
         self.mutationParams = mutationParams
 
-    def setNewPopSelection(self, newPopSelection, newPopSelectionParams):
-        """Configure the used new population selection process. Parameters:
-        - newPopSelection: a selection function
-        - newPopSelectionParams: its parameters (a tuple)"""
-        self.newPopSelection = newPopSelection
-        self.newPopSelectionParams = newPopSelectionParams
-
     def execute(self):
-
-        self.getElite() # gets the best values if self.eliteSize > 0; does nothing otherwise
 
         metrics = self.getFitnessMetrics() # post-initialization: generation 0
 
@@ -267,8 +245,64 @@ class DifferentialEvolution(object):
 
         return {"avg": avg, "top": top, "topPoints": topPoints, "bottom": bottom, "bottomPoints": bottomPoints, "error": error}
 
-    def creepMutation(self, index, prob=0.05, mean=0, stdev=1):
-        """Executes a creep mutation on the individual (child) with a specified index."""
+    def mutation(self, base="rand", F=1, nDiffs=1):
+        """Executes the mutation procedure for the entire population. Parameters:
+        - base: string that identifies who is the perturbed vector for mutation. "rand" (default) choses random vectors;
+        "best" choses the population's best solution.
+        - F ∈ [0, 2]; defaults to 1: affects the mutation strength;
+        - nDiffs (integer, defaults to 1): number of employed difference vector"""
+
+        self.mutedPop = []
+
+        for i in range(self.popSize):
+
+            selectedIndexes = []
+
+            x = None
+            perturbation = np.zeros( len( self.bounds[0] ) )
+            # numpy array: [0 0 ... 0] - size = number of dimensions
+
+            if base == "rand":
+                xIndex = np.random.randint(0, self.popSize)
+                x = self.pop[xIndex]
+                selectedIndexes.append(xIndex)
+
+            elif base == "best":
+                x = self.pop[self.bestIndex]
+                selectedIndexes.append(self.bestIndex)
+
+            else:
+                raise ValueError("DifferentialEvolution: mutation: best expects values 'rand' or 'best'.")
+
+            for i in range(nDiffs):
+
+                ind1, ind2 = None, None
+                index1, index2 = -1, -1
+
+                # Choosing vectors that were not already chosen
+                while true:
+
+                    index1 = np.random.randint(0, self.popSize)
+
+                    if(index1 not in selectedIndexes):
+                        ind1 = self.pop[index1]
+                        selectedIndexes.append(index1)
+                        break
+
+
+                while true:
+
+                    index2 = np.random.randint(0, self.popSize)
+
+                    if(index2 not in selectedIndexes):
+                        ind2 = self.pop[index2]
+                        selectedIndexes.append(index2)
+                        break
+
+            perturbation += F * (ind1 - ind2)
+
+            self.mutedPop.append()
+
 
         while True:
             # adds a random value to the gene with a probability prob
