@@ -10,13 +10,13 @@ class MaxFESReached(Exception):
 class DifferentialEvolution(object):
     """Implements a real-valued Differential Evolution."""
 
-    def __init__(self, func, bounds, popSize=100, crit="min", optimum=-450, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=None, crit="min", optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
-        - func: a function name (the optimization problem to be resolved)
+        - func: a function (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
         - popSize: population size
         - crit: criterion ("min" or "max")
-        - optimum: known optimum value for the objective function. Default is 0.
+        - optimum: known optimum value for the objective function. Default is -450, for CEC functions.
         - maxFES: maximum number of fitness evaluations.
         If set to None, will be calculated as 10000 * [number of dimensions] = 10000 * len(bounds)"""
 
@@ -25,14 +25,16 @@ class DifferentialEvolution(object):
         # From arguments
         self.func = func
         self.bounds = bounds
-        self.popSize = popSize
         self.crit = crit
         self.optimum = optimum
         self.tol = tol
         self.dimensions = len(self.bounds[0])
 
+        if(popSize): self.popSize = popSize
+        else: self.popSize = 10 * self.dimensions
+
         if(maxFES): self.maxFES = maxFES
-        else: self.maxFES = 10000 * self.dimensions # 10000 x [dimensions]
+        else: self.maxFES = 10000 * self.dimensions
 
         # Control attributes
         self.pop = None
@@ -50,7 +52,7 @@ class DifferentialEvolution(object):
             raise ValueError("The bound arrays have different sizes.")
 
         # Population initialization as random (uniform)
-        self.pop = [ [np.random.uniform(self.bounds[0], self.bounds[1]), 0] for i in range(popSize) ] # genes, fitness
+        self.pop = [ [np.random.uniform(self.bounds[0], self.bounds[1]), 0] for i in range(self.popSize) ] # genes, fitness
         self.calculateFitnessPop()
         # individuals' parameters are numpy arrays
 
@@ -86,10 +88,16 @@ class DifferentialEvolution(object):
 
         while ( abs(self.bestSoFar - self.optimum) > self.tol ):
 
-            if(self.parentSelectionParams): self.parentSelection(*self.parentSelectionParams) # tem parâmetro definido?
-            else: self.parentSelection() # se não tiver, roda sem.
+            try:
+
+                if(self.mutationParams): self.mutation(*self.mutationParams) # tem parâmetro definido?
+                else: self.mutation() # se não tiver, roda sem.
+
+            except MaxFESReached:
+                break
 
             try:
+
                 if(self.crossoverParams): self.crossover(*self.crossoverParams)
                 else: self.crossover()
 
@@ -97,16 +105,7 @@ class DifferentialEvolution(object):
                 break
                 #Exit the loop, going to the result saving part
 
-            try:
-                for index in range( len(self.children) ):
-                    if(self.mutationParams): self.mutation(index, *self.mutationParams)
-                    else: self.mutation(index)
-
-            except MaxFESReached:
-                break
-
-            if(self.newPopSelectionParams): self.newPopSelection(*self.newPopSelectionParams)
-            else: self.newPopSelection()
+            self.selection()
 
             metrics = self.getFitnessMetrics()
 
@@ -157,69 +156,17 @@ class DifferentialEvolution(object):
 
         if self.FES == self.maxFES: raise MaxFESReached
 
-    def getMax(self):
-        """Finds the individuals with the highest fitness value of the population.
-        Returns (top, points) -> top = fitness value / points: list of the individuals' genes.
-        Execute after evaluating fitness values for the entire population!"""
-
-        top = -np.inf
-        points = []
-
-        for i in range(self.popSize):
-
-            if (top < self.pop[i][1]):
-                top = self.pop[i][1]
-                points = [ self.pop[i][0] ]
-
-            elif (top == self.pop[i][1]):
-                points.append(self.pop[i][0])
-
-        if(self.crit == "max"): self.bestSoFar = top
-
-        return (top, points)
-
-    def getMin(self):
-        """Finds the individuals with the lowest fitness value of the population.
-        Returns (bottom, points) -> bottom = fitness value / points: list of the individuals' genes.
-        Execute after evaluating fitness values for the entire population!"""
-
-        bottom = np.inf
-        points = []
-
-        for i in range(self.popSize):
-
-            if (bottom > self.pop[i][1]):
-                bottom = self.pop[i][1]
-                points = [ self.pop[i][0] ]
-
-            elif (bottom == self.pop[i][1]):
-                points.append(self.pop[i][0])
-
-        if(self.crit == "min"): self.bestSoFar = bottom
-
-        return (bottom, points)
-
-    def getMean(self):
-        """Returns the population's mean fitness value. Execute after evaluating fitness values for the entire population!"""
-
-        total = 0
-
-        for i in range(self.popSize):
-
-            total += self.pop[i][1]
-
-        return total/self.popSize
-
     def getFitnessMetrics(self):
 
         """Finds the mean, greater and lower fitness values for the population,
-        as well as the points with the greater and lower ones.
+        as well as the points with the greater and lower ones and the current error.
         Returns a dict, whose keys are:
         "avg" to average value
         "top" to top value
         "topPoints" to a list of points with the top value
         "bottom" to bottom value
         "bottomPoints" to a list of points with the bottom value
+        "error" for the current error (difference between the fitness and the optimum)
 
         Execute after evaluating fitness values for the entire population!"""
 
@@ -256,7 +203,7 @@ class DifferentialEvolution(object):
 
         return {"avg": avg, "top": top, "topPoints": topPoints, "bottom": bottom, "bottomPoints": bottomPoints, "error": error}
 
-    def mutation(self, base="rand", F=1, nDiffs=1):
+    def classicMutation(self, base="rand", F=0.75, nDiffs=1):
         """Executes the mutation procedure for the entire population. Parameters:
         - base: string that identifies who is the perturbed vector for mutation. "rand" (default) choses random vectors;
         "best" choses the population's best solution.
@@ -272,7 +219,7 @@ class DifferentialEvolution(object):
                 selectedIndexes = []
 
                 x = None
-                perturbation = np.zeros( len( self.dimensions ) )
+                perturbation = np.zeros(self.dimensions)
                 # numpy array: [0 0 ... 0] - size = number of dimensions
 
                 if base == "rand":
@@ -293,7 +240,7 @@ class DifferentialEvolution(object):
                     index1, index2 = -1, -1
 
                     # Choosing vectors that were not already chosen
-                    while true:
+                    while True:
 
                         index1 = np.random.randint(0, self.popSize)
 
@@ -302,7 +249,7 @@ class DifferentialEvolution(object):
                             selectedIndexes.append(index1)
                             break
 
-                    while true:
+                    while True:
 
                         index2 = np.random.randint(0, self.popSize)
 
@@ -313,15 +260,20 @@ class DifferentialEvolution(object):
 
                 perturbation += F * (ind1[0] - ind2[0]) # ind[0] carries its genes
 
+
                 v = [x[0] + perturbation, 0]
 
                 if(self.isInBounds(v)):
 
-                    self.mutedPop.append( [x[0] + perturbation, 0]) # x[0]: genes / second element: fitness value (not yet calculated)
+                    v[1] = self.func(v[0])
+                    self.FES += 1
+                    if self.FES == self.maxFES: raise MaxFESReached
+                    self.mutedPop.append(v) # x[0]: genes / second element: fitness value
+
                     break
 
 
-    def crossover(self, cr=0.5, type="bin"):
+    def classicCrossover(self, type="bin", cr=1.0):
         """Defines the crossover, which forms the trial vectors. Its parameters are:
         - cr (int ∈ [0, 1]), is the crossover constant, which regulates the proportion
         of genes passed by each parent;
@@ -337,9 +289,9 @@ class DifferentialEvolution(object):
                 crossedInd = [ np.zeros(self.dimensions), 0]
                 randDim = np.random.randint(0, self.dimensions) # a random position WILL receive a muted parameter
 
-                for j in range(len(bounds)[0]): # iterating through dimensions
+                for j in range(self.dimensions): # iterating through dimensions
 
-                    if (np.random.uniform(0, 1) < crossProb or j == randDim):
+                    if (np.random.uniform(0, 1) < cr or j == randDim):
                         # crossover executed with probability crossProb
                         # if the current dimension is randDim, this position receives the muted gen
 
@@ -378,8 +330,8 @@ class DifferentialEvolution(object):
 
             finalInd = None
 
-            if self.crit == "min": finalInd = self.mutedPop[i] if self.mutedPop[i][1] <= self.pop[i][1] else ind2 # compara valores de f. escolhe o de menor aptidão
-            else: finalInd = self.mutedPop[i] if self.mutedPop[i][1] >= self.pop[i][1] else ind2 # compara valores de f. escolhe o de menor aptidão
+            if self.crit == "min": finalInd = self.mutedPop[i] if self.mutedPop[i][1] <= self.pop[i][1] else self.pop[i] # compara valores de f. escolhe o de menor aptidão
+            else: finalInd = self.mutedPop[i] if self.mutedPop[i][1] >= self.pop[i][1] else self.pop[i] # compara valores de f. escolhe o de menor aptidão
 
             finalPop.append(finalInd)
 
@@ -388,7 +340,7 @@ class DifferentialEvolution(object):
 
 if __name__ == '__main__':
 
-    # Test of the GA's performance over CEC2005's F1 (shifted sphere)
+    # Test of the DE's performance over CEC2005's F1 (shifted sphere)
 
     import time
     from optproblems import cec2005
@@ -398,17 +350,13 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    GA = GeneticAlgorithm(cec2005.F1(10), bounds, eliteSize=1, popSize=50)
+    DE = DifferentialEvolution(cec2005.F1(10), bounds)
+    DE.setMutation(DE.classicMutation, ("rand", 1, 1)) # base, F, nDiffs
+    DE.setCrossover(DE.classicCrossover, ("bin", 0.5)) # type, CR
+    DE.execute()
+    results = DE.results
 
-    GA.setParentSelection(GA.tournamentSelection, (True,) )
-    GA.setCrossover(GA.blxAlphaCrossover, (0.5, 0.6)) # alpha, prob
-    GA.setMutation(GA.creepMutation, (0.05, 0, 1)) # prob, mean, sigma
-    GA.setNewPopSelection(GA.tournamentSelection, (False, ))
-    # GA.setNewPopSelection(GA.generationalSelection, None)
-    GA.execute()
-    results = GA.results
-
-    print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
+    print("DE: for criterion = " + DE.crit + ", reached optimum of " + str(results["minFits"][-1]) +
     " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
     " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
 

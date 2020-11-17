@@ -55,7 +55,7 @@ class GeneticAlgorithm(object):
             raise ValueError("The bound arrays have different sizes.")
 
         # Population initialization as random (uniform)
-        self.pop = [ [np.random.uniform(self.bounds[0], self.bounds[1]).tolist(), 0] for i in range(popSize) ] # genes, fitness
+        self.pop = [ [np.random.uniform(self.bounds[0], self.bounds[1]).tolist(), 0] for i in range(self.popSize) ] # genes, fitness
         self.calculateFitnessPop()
         # tolist(): convert to python list
 
