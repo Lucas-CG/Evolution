@@ -29,9 +29,10 @@ class DifferentialEvolution(object):
         self.crit = crit
         self.optimum = optimum
         self.tol = tol
+        self.dimensions = len(self.bounds[0])
 
         if(maxFES): self.maxFES = maxFES
-        else: self.maxFES = 10000 * len(bounds[0]) # 10000 x [dimensions]
+        else: self.maxFES = 10000 * self.dimensions # 10000 x [dimensions]
 
         # Control attributes
         self.pop = None
@@ -128,6 +129,16 @@ class DifferentialEvolution(object):
                 "minFits": minFits,
                 "minPoints": minPoints,
                 "avgFits": avgFits}
+
+    def isInBounds(self, ind):
+        """Bound checking function for the genes. Used in the mutation procedure."""
+
+        for i in range( len(ind[0]) ):
+
+            if not (self.bounds[0][i] <= ind[0][i] <= self.bounds[1][i]): return False
+            # if one gene is out of the bounds, returns false
+
+        return True # if it has exited the loop, the genes are valid
 
     def calculateFitnessPop(self):
         """Calculates the fitness values for the entire population."""
@@ -256,177 +267,123 @@ class DifferentialEvolution(object):
 
         for i in range(self.popSize):
 
-            selectedIndexes = []
+            while True:
 
-            x = None
-            perturbation = np.zeros( len( self.bounds[0] ) )
-            # numpy array: [0 0 ... 0] - size = number of dimensions
+                selectedIndexes = []
 
-            if base == "rand":
-                xIndex = np.random.randint(0, self.popSize)
-                x = self.pop[xIndex]
-                selectedIndexes.append(xIndex)
+                x = None
+                perturbation = np.zeros( len( self.dimensions ) )
+                # numpy array: [0 0 ... 0] - size = number of dimensions
 
-            elif base == "best":
-                x = self.pop[self.bestIndex]
-                selectedIndexes.append(self.bestIndex)
+                if base == "rand":
+                    xIndex = np.random.randint(0, self.popSize)
+                    x = self.pop[xIndex]
+                    selectedIndexes.append(xIndex)
 
-            else:
-                raise ValueError("DifferentialEvolution: mutation: best expects values 'rand' or 'best'.")
+                elif base == "best":
+                    x = self.pop[self.bestIndex]
+                    selectedIndexes.append(self.bestIndex)
 
-            for i in range(nDiffs):
+                else:
+                    raise ValueError("DifferentialEvolution: mutation: best expects values 'rand' or 'best'.")
 
-                ind1, ind2 = None, None
-                index1, index2 = -1, -1
+                for i in range(nDiffs):
 
-                # Choosing vectors that were not already chosen
-                while true:
+                    ind1, ind2 = None, None
+                    index1, index2 = -1, -1
 
-                    index1 = np.random.randint(0, self.popSize)
+                    # Choosing vectors that were not already chosen
+                    while true:
 
-                    if(index1 not in selectedIndexes):
-                        ind1 = self.pop[index1]
-                        selectedIndexes.append(index1)
-                        break
+                        index1 = np.random.randint(0, self.popSize)
+
+                        if(index1 not in selectedIndexes):
+                            ind1 = self.pop[index1]
+                            selectedIndexes.append(index1)
+                            break
+
+                    while true:
+
+                        index2 = np.random.randint(0, self.popSize)
+
+                        if(index2 not in selectedIndexes):
+                            ind2 = self.pop[index2]
+                            selectedIndexes.append(index2)
+                            break
+
+                perturbation += F * (ind1[0] - ind2[0]) # ind[0] carries its genes
+
+                v = [x[0] + perturbation, 0]
+
+                if(self.isInBounds(v)):
+
+                    self.mutedPop.append( [x[0] + perturbation, 0]) # x[0]: genes / second element: fitness value (not yet calculated)
+                    break
 
 
-                while true:
+    def crossover(self, cr=0.5, type="bin"):
+        """Defines the crossover, which forms the trial vectors. Its parameters are:
+        - cr (int ∈ [0, 1]), is the crossover constant, which regulates the proportion
+        of genes passed by each parent;
+        - type: string (defaults to 'bin'): the type of crossover procedure. Currently, only 'bin',
+        corresponding to independent binomial experiments is supported."""
 
-                    index2 = np.random.randint(0, self.popSize)
+        self.crossedPop = []
 
-                    if(index2 not in selectedIndexes):
-                        ind2 = self.pop[index2]
-                        selectedIndexes.append(index2)
-                        break
+        if(type == "bin"):
 
-            perturbation += F * (ind1 - ind2)
+            for i in range(self.popSize): # iterating through individuals
 
-            self.mutedPop.append()
+                crossedInd = [ np.zeros(self.dimensions), 0]
+                randDim = np.random.randint(0, self.dimensions) # a random position WILL receive a muted parameter
 
+                for j in range(len(bounds)[0]): # iterating through dimensions
 
-        while True:
-            # adds a random value to the gene with a probability prob
-            newGenes = [ gene + np.random.normal(mean, stdev) if (np.random.uniform(0, 1) < prob) else gene for gene in self.children[index][0] ]
+                    if (np.random.uniform(0, 1) < crossProb or j == randDim):
+                        # crossover executed with probability crossProb
+                        # if the current dimension is randDim, this position receives the muted gen
 
-            #redo bound check
-            if( self.isInBounds([newGenes, 0]) ):
+                        crossedInd[0][j] = self.mutedPop[i][0][j] # mutedPop indexes: individual, genes, dimension
 
-                if(self.pop[index][0] != newGenes):
+                    else:
+                        crossedInd[0][j] = self.pop[i][0][j]
 
-                    self.pop[index][0] = newGenes
-                    self.calculateFitnessInd(index)
+                crossedInd[1] = self.func(crossedInd[0])
+                self.FES += 1
+                if self.FES == self.maxFES: raise MaxFESReached
+                self.crossedPop.append(crossedInd)
 
-                break
+    # def getElite(self):
+    #
+    #     if self.eliteSize > 0:
+    #
+    #         elite = None
+    #
+    #         if self.crit == "max":
+    #             self.pop.sort(key = getSecond, reverse = True) # ordena pelo valor de f em ordem decrescente
+    #             elite = self.pop[:self.eliteSize]
+    #
+    #         else:
+    #             self.pop.sort(key = getSecond, reverse = False) # ordena pelo valor de f em ordem crescente
+    #             elite = self.pop[:self.eliteSize]
+    #
+    #         self.elite = elite
 
-    def isInBounds(self, ind):
-        """Bound checking function for the genes. Used for mutation and crossover."""
+    def selection(self):
+        """Defines the selection procedure for DEs."""
 
-        for i in range( len(ind[0]) ):
-
-            if not (self.bounds[0][i] <= ind[0][i] <= self.bounds[1][i]): return False
-            # if this gene is in the bounds, inBounds keeps its True value.
-            # else, it automatically returns False. Escaping to save up iterations.
-
-        return True # if it has exited the loop, the genes are valid
-
-    def getElite(self):
-
-        if self.eliteSize > 0:
-
-            elite = None
-
-            if self.crit == "max":
-                self.pop.sort(key = getSecond, reverse = True) # ordena pelo valor de f em ordem decrescente
-                elite = self.pop[:self.eliteSize]
-
-            else:
-                self.pop.sort(key = getSecond, reverse = False) # ordena pelo valor de f em ordem crescente
-                elite = self.pop[:self.eliteSize]
-
-            self.elite = elite
-
-    def tournamentSelection(self, crossover = True):
-        # use with matingPool for parent selection
-        # use with pop for post-crossover selection (non-generational selection schemes)
-
-        winners = []
-
-        if(not crossover and self.elite): # if there is an elite and it is not a crossover selection...
-            for ind in self.elite:
-                winners.extend(self.elite)
-
-        while len(winners) < self.popSize:
-
-            positions = np.random.randint(0, len(self.pop), 2)
-            # len(self.pop) because the population may have children (larger than self.popSize)
-            ind1, ind2 = self.pop[positions[0]], self.pop[positions[1]]
-            if self.crit == "min": winner = ind1 if ind1[1] <= ind2[1] else ind2 # compara valores de f. escolhe o de menor aptidão
-            else: winner = ind1 if ind1[1] >= ind2[1] else ind2 # compara valores de f. escolhe o de menor aptidão
-            winners.append(winner)
-
-        if crossover: self.matingPool = winners
-        else: self.pop = winners # post-crossover selection determines the population
-
-    def blxAlphaCrossover(self, alpha=0.5, crossProb=0.6):
-        # Defines the BLX-α crossover for the mating pool. Creates an amount of children equal to the population size.
-        if not self.matingPool:
-            raise ValueError("There is no mating pool. Execute a selection function for it first.")
-
-        children = []
+        finalPop = []
 
         for i in range(self.popSize):
 
-            positions = np.random.randint(0, len(self.matingPool), 2)
-            parent1, parent2 = self.matingPool[positions[0]], self.matingPool[positions[1]]
+            finalInd = None
 
-            if (np.random.uniform(0, 1) < crossProb): # crossover executed with probability crossProb
+            if self.crit == "min": finalInd = self.mutedPop[i] if self.mutedPop[i][1] <= self.pop[i][1] else ind2 # compara valores de f. escolhe o de menor aptidão
+            else: finalInd = self.mutedPop[i] if self.mutedPop[i][1] >= self.pop[i][1] else ind2 # compara valores de f. escolhe o de menor aptidão
 
-                child = []
-                genes = []
+            finalPop.append(finalInd)
 
-                for j in range( len(parent1[0]) ): # iterate through its genes
-
-                    while True:
-                        beta = ( np.random.uniform( -alpha, 1 + alpha ) )
-                        gene = parent1[0][j] + beta * (parent2[0][j] - parent1[0][j])
-
-                        if( self.bounds[0][j] <= gene <= self.bounds[1][j] ):
-                            genes.append(gene)
-                            break
-                            #Fora dos limites? Refazer.
-
-                child.append(genes)
-                child.append(self.func(genes))
-                self.FES += 1
-                if self.FES == self.maxFES: raise MaxFESReached
-
-                children.append(child)
-
-            else: #if it is not executed, the parent with the best fitness is given as a child
-                if self.crit == "min": children.append(parent1) if parent1[1] <= parent2[1] else children.append(parent2) # compara valores de f. escolhe o de menor aptidão
-                else: children.append(parent1) if parent1[1] >= parent2[1] else children.append(parent2) # compara valores de f. escolhe o de menor aptidão
-
-        self.children = children
-
-        if(self.newPopSelection != self.generationalSelection): self.pop.extend(self.children)
-
-    def generationalSelection(self):
-
-        if self.eliteSize > 0:
-
-            if self.crit == "max":
-                self.children.sort(key = getSecond, reverse = True) # ordena pelo valor de f em ordem decrescente
-
-            else:
-                self.children.sort(key = getSecond, reverse = False) # ordena pelo valor de f em ordem crescente
-
-            newPop = []
-            newPop.extend(self.elite)
-            newPop.extend(self.children)
-            self.pop = newPop[:self.popSize] # cutting out the worst individuals
-
-        else:
-            self.pop = self.children
+        self.pop = finalPop
 
 
 if __name__ == '__main__':
