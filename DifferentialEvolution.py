@@ -31,7 +31,7 @@ class DifferentialEvolution(object):
         self.dimensions = len(self.bounds[0])
 
         if(popSize): self.popSize = popSize
-        else: self.popSize = 10 * self.dimensions
+        else: self.popSize = 9 * self.dimensions
 
         if(maxFES): self.maxFES = maxFES
         else: self.maxFES = 10000 * self.dimensions

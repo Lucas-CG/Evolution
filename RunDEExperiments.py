@@ -5,7 +5,7 @@ from optproblems import cec2005
 if __name__ == '__main__':
 
     dimensions = 10
-    func = cec2005.F3(dimensions)
+    func = cec2005.F4(dimensions)
     bounds = [ [-100 for i in range(dimensions)], [100 for i in range(dimensions)] ]
     # 10 dimensions; each dimension variable varies within [-100, +100]
 
@@ -13,8 +13,8 @@ if __name__ == '__main__':
 
     # Initialization
     DE = DifferentialEvolution(func, bounds, optimum = -450) #-450 for f1-4 or -310 for f5
-    DE.setMutation(DE.classicMutation, None) # base, F, nDiffs
-    DE.setCrossover(DE.classicCrossover, None) # type, CR
+    DE.setMutation(DE.classicMutation, ("rand", 0.5, 1)) # base, F, nDiffs
+    DE.setCrossover(DE.classicCrossover, ("bin", 0.8)) # type, CR
     DE.execute()
     results = DE.results
 

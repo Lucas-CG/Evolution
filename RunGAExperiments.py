@@ -5,14 +5,14 @@ from optproblems import cec2005
 if __name__ == '__main__':
 
     dimensions = 10
-    func = cec2005.F1(dimensions)
+    func = cec2005.F5(dimensions)
     bounds = [ [-100 for i in range(dimensions)], [100 for i in range(dimensions)] ]
     # 10 dimensions; each dimension variable varies within [-100, +100]
 
     # start = time.time()
 
     # Initialization
-    GA = GeneticAlgorithm(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=2, popSize=100) #F5 = -330
+    GA = GeneticAlgorithm(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=2, popSize=100) #F5 = -310
 
     GA.setParentSelection(GA.tournamentSelection, (True,) )
     GA.setCrossover(GA.blxAlphaCrossover, (0.5, 0.6)) # alpha, prob
