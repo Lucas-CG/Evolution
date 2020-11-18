@@ -5,14 +5,14 @@ from optproblems import cec2005
 if __name__ == '__main__':
 
     dimensions = 10
-    func = cec2005.F5(dimensions)
+    func = cec2005.F3(dimensions)
     bounds = [ [-100 for i in range(dimensions)], [100 for i in range(dimensions)] ]
     # 10 dimensions; each dimension variable varies within [-100, +100]
 
     # start = time.time()
 
     # Initialization
-    DE = DifferentialEvolution(func, bounds)
+    DE = DifferentialEvolution(func, bounds, optimum = -450) #-450 for f1-4 or -310 for f5
     DE.setMutation(DE.classicMutation, None) # base, F, nDiffs
     DE.setCrossover(DE.classicCrossover, None) # type, CR
     DE.execute()
