@@ -203,7 +203,7 @@ class DifferentialEvolution(object):
 
         return {"avg": avg, "top": top, "topPoints": topPoints, "bottom": bottom, "bottomPoints": bottomPoints, "error": error}
 
-    def classicMutation(self, base="rand", F=0.75, nDiffs=1):
+    def classicMutation(self, base="rand", F=0.5, nDiffs=1):
         """Executes the mutation procedure for the entire population. Parameters:
         - base: string that identifies who is the perturbed vector for mutation. "rand" (default) choses random vectors;
         "best" choses the population's best solution.
@@ -273,7 +273,7 @@ class DifferentialEvolution(object):
                     break
 
 
-    def classicCrossover(self, type="bin", cr=1.0):
+    def classicCrossover(self, type="bin", cr=0.8):
         """Defines the crossover, which forms the trial vectors. Its parameters are:
         - cr (int ∈ [0, 1]), is the crossover constant, which regulates the proportion
         of genes passed by each parent;
