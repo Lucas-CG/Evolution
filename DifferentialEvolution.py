@@ -207,6 +207,7 @@ class DifferentialEvolution(object):
         """Executes the mutation procedure for the entire population. Parameters:
         - base: string that identifies who is the perturbed vector for mutation. "rand" (default) choses random vectors;
         "best" choses the population's best solution.
+        "current to best adds a perturbation that is the distance between the current individual and the best one"
         - F ∈ [0, 2]; defaults to 1: affects the mutation strength;
         - nDiffs (integer, defaults to 1): number of employed difference vector"""
 
@@ -231,10 +232,16 @@ class DifferentialEvolution(object):
                     x = self.pop[self.bestIndex]
                     selectedIndexes.append(self.bestIndex)
 
-                else:
-                    raise ValueError("DifferentialEvolution: mutation: best expects values 'rand' or 'best'.")
+                elif base == "current-to-best":
+                    x = self.pop[i]
+                    best = self.pop[self.bestIndex]
+                    selectedIndexes.append(i)
+                    selectedIndexes.append(self.bestIndex)
 
-                for i in range(nDiffs):
+                else:
+                    raise ValueError("DifferentialEvolution: mutation: best expects values 'rand', 'best' or 'current-to-best'.")
+
+                for j in range(nDiffs):
 
                     ind1, ind2 = None, None
                     index1, index2 = -1, -1
@@ -260,6 +267,9 @@ class DifferentialEvolution(object):
 
                 perturbation += F * (ind1[0] - ind2[0]) # ind[0] carries its genes
 
+                if base == "current-to-best":
+
+                    perturbation += F * (best[0] - x[0])
 
                 v = [x[0] + perturbation, 0]
 
