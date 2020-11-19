@@ -10,13 +10,14 @@ class MaxFESReached(Exception):
 class GeneticAlgorithm(object):
     """Implements a real-valued Genetic Algorithm."""
 
-    def __init__(self, func, bounds, popSize=100, crit="min", eliteSize=0, optimum=-450, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=100, crit="min", eliteSize=0, matingPoolSize=100, optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function name (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
         - popSize: population size
         - crit: criterion ("min" or "max")
         - eliteSize: positive integer; defines whether elitism is enabled or not
+        - matingPoolSize: indicate the size of the mating pool
         - optimum: known optimum value for the objective function. Default is 0.
         - maxFES: maximum number of fitness evaluations.
         If set to None, will be calculated as 10000 * [number of dimensions] = 10000 * len(bounds)"""
@@ -31,6 +32,7 @@ class GeneticAlgorithm(object):
         self.eliteSize = eliteSize
         self.optimum = optimum
         self.tol = tol
+        self.matingPoolSize = matingPoolSize
 
         if(maxFES): self.maxFES = maxFES
         else: self.maxFES = 10000 * len(bounds[0]) # 10000 x [dimensions]
@@ -321,7 +323,12 @@ class GeneticAlgorithm(object):
             for ind in self.elite:
                 winners.extend(self.elite)
 
-        while len(winners) < self.popSize:
+        limit = self.popSize
+
+        if(crossover):
+            limit = self.matingPoolSize
+
+        while len(winners) < limit:
 
             positions = np.random.randint(0, len(self.pop), 2)
             # len(self.pop) because the population may have children (larger than self.popSize)
@@ -394,6 +401,9 @@ class GeneticAlgorithm(object):
         else:
             self.pop = self.children
 
+    def rankingSelection(self):
+        pass
+        #To do
 
 if __name__ == '__main__':
 
