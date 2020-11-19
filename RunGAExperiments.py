@@ -12,7 +12,7 @@ if __name__ == '__main__':
     # start = time.time()
 
     # Initialization
-    GA = GeneticAlgorithm(func, bounds, crit="min", optimum=-310, tol=1e-08, eliteSize=2, matingPoolSize=100, popSize=200) #F5 = -310
+    GA = GeneticAlgorithm(func, bounds, crit="min", optimum=-310, tol=1e-08, eliteSize=2, matingPoolSize=100, popSize=100) #F5 = -310
 
     GA.setParentSelection(GA.tournamentSelection, (True,) )
     GA.setCrossover(GA.blxAlphaCrossover, (0.5, 0.6)) # alpha, prob
