@@ -5,20 +5,21 @@ from optproblems import cec2005
 if __name__ == '__main__':
 
     dimensions = 10
-    func = cec2005.F5(dimensions)
+    func = cec2005.F1(dimensions)
     bounds = [ [-100 for i in range(dimensions)], [100 for i in range(dimensions)] ]
     # 10 dimensions; each dimension variable varies within [-100, +100]
 
     # start = time.time()
 
     # Initialization
-    GA = GeneticAlgorithm(func, bounds, crit="min", optimum=-310, tol=1e-08, eliteSize=2, matingPoolSize=100, popSize=100) #F5 = -310
+    GA = GeneticAlgorithm(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, matingPoolSize=80, popSize=100) #F5 = -310
 
     GA.setParentSelection(GA.tournamentSelection, (True,) )
-    GA.setCrossover(GA.blxAlphaCrossover, (0.5, 0.6)) # alpha, prob
+    GA.setCrossover(GA.blxAlphaCrossover, (0.5, 0.9)) # alpha, prob
     GA.setMutation(GA.creepMutation, (0.05, 0, 1)) # prob, mean, sigma
     # GA.setNewPopSelection(GA.tournamentSelection, (False, ))
-    GA.setNewPopSelection(GA.generationalSelection, None)
+    # GA.setNewPopSelection(GA.generationalSelection, None)
+    GA.setNewPopSelection(GA.genitor, None)
     GA.execute()
     results = GA.results
 

@@ -401,9 +401,17 @@ class GeneticAlgorithm(object):
         else:
             self.pop = self.children
 
-    def rankingSelection(self):
-        pass
+    def genitor(self):
+        #excludes the worst individuals
+        if self.crit == "max":
+            self.pop.sort(key = getSecond, reverse = True) # ordena pelo valor de f em ordem decrescente
+            elite = self.pop[:self.eliteSize]
+
+        else:
+            self.pop.sort(key = getSecond, reverse = False) # ordena pelo valor de f em ordem crescente
+            elite = self.pop[:self.eliteSize]
         #To do
+        self.pop = self.pop[:self.popSize]
 
 if __name__ == '__main__':
 
