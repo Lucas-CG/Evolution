@@ -7,10 +7,10 @@ class MaxFESReached(Exception):
     """Exception used to interrupt the GA operation when the maximum number of fitness evaluations is reached."""
     pass
 
-class GeneticAlgorithm(object):
-    """Implements a real-valued Genetic Algorithm."""
+class AdaptiveGA(object):
+    """Implements a real-valued Genetic Algorithm, with adaptive parameters for creep mutation."""
 
-    def __init__(self, func, bounds, popSize=100, crit="min", eliteSize=0, matingPoolSize=100, optimum=-450, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=100, crit="min", eliteSize=0, matingPoolSize=100, adaptiveEpsilon=0.1, optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function name (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
@@ -27,12 +27,14 @@ class GeneticAlgorithm(object):
         # From arguments
         self.func = func
         self.bounds = bounds
+        self.dimensions = len(self.bounds[0])
         self.popSize = popSize
         self.crit = crit
         self.eliteSize = eliteSize
         self.optimum = optimum
         self.tol = tol
         self.matingPoolSize = matingPoolSize
+        self.adaptiveEpsilon = adaptiveEpsilon
 
         if(maxFES): self.maxFES = maxFES
         else: self.maxFES = 10000 * len(bounds[0]) # 10000 x [dimensions]
@@ -56,10 +58,18 @@ class GeneticAlgorithm(object):
         if( len(self.bounds[0]) != len(self.bounds[1]) ):
             raise ValueError("The bound arrays have different sizes.")
 
+        self.pop = []
+
         # Population initialization as random (uniform)
-        self.pop = [ [np.random.uniform(self.bounds[0], self.bounds[1]).tolist(), 0] for i in range(self.popSize) ] # genes, fitness
+        for i in range(self.popSize):
+            ind = []
+            genes = np.random.uniform(self.bounds[0], self.bounds[1]).tolist()
+            sigmas = np.random.uniform(0.1, 1, self.dimensions).tolist()
+            # tolist(): convert to python list
+            genes.extend(sigmas)
+            self.pop.append([genes, 0])
+
         self.calculateFitnessPop()
-        # tolist(): convert to python list
 
     def setParentSelection(self, parentSelection, parentSelectionParams):
         """Configure the used parent selection process. Parameters:
@@ -157,10 +167,11 @@ class GeneticAlgorithm(object):
         """Calculates the fitness values for the entire population."""
 
         for ind in self.pop:
-            ind[1] = self.func(ind[0])
+            ind[1] = self.func(ind[0][:self.dimensions])
             self.FES += 1
 
             if self.FES == self.maxFES: raise MaxFESReached
+
 
     def getMax(self):
         """Finds the individuals with the highest fitness value of the population.
@@ -261,57 +272,38 @@ class GeneticAlgorithm(object):
 
         return {"avg": avg, "top": top, "topPoints": topPoints, "bottom": bottom, "bottomPoints": bottomPoints, "error": error}
 
-    def creepMutation(self, index, prob=1, mean=0, stdev=1):
+    def adaptiveCreepMutation(self, index, prob=1):
         """Executes a creep mutation on the individual (child) with a specified index."""
 
-        while True:
-            # adds a random value to the gene with a probability prob
-            newGenes = [ gene + np.random.normal(mean, stdev) if (np.random.uniform(0, 1) < prob) else gene for gene in self.children[index][0] ]
+        # adds a random value to the gene with a probability prob
 
-            #redo bound check
-            if( self.isInBounds([newGenes, 0]) ):
+        newGenes = []
+        fixedNormalMod = np.random.normal(0, 1)
+        fixedTau = 1/np.sqrt(2 * self.dimensions)
+        dimTau = 1/np.sqrt( 2 * np.sqrt(self.dimensions) )
 
-                if(self.children[index][0] != newGenes):
+        for i in range(self.dimensions):
 
-                    self.children[index][0] = newGenes
-                    self.children[index][1] = self.func(self.children[index][0])
-                    self.FES += 1
+            #modifying this dimension's sigma
+            self.children[index][0][self.dimensions + i] *= np.exp(fixedTau * fixedNormalMod + dimTau * np.random.normal(0, 1))
+            if(self.children[index][0][self.dimensions + i] < self.adaptiveEpsilon): self.children[index][0][self.dimensions + i] = self.adaptiveEpsilon
 
-                    if self.FES == self.maxFES: raise MaxFESReached
+            #applying it to this dimension's parameter
+            self.children[index][0][i] = self.children[index][0][i] + np.random.normal(0, self.children[index][0][self.dimensions + i]) if (np.random.uniform(0, 1) < prob) else self.children[index][0][i]
 
-                break
+            if(self.children[index][0][i] < self.bounds[0][i]): self.children[index][0][i] = self.bounds[0][i]
+            if(self.children[index][0][i] > self.bounds[1][i]): self.children[index][0][i] = self.bounds[1][i]
+            #truncating to bounds
 
-    def uniformMutation(self, index, prob=0.05):
-        """Executes a creep mutation on the individual (child) with a specified index."""
+        self.children[index][1] = self.func(self.children[index][0][:self.dimensions])
+        self.FES += 1
+        if self.FES == self.maxFES: raise MaxFESReached
 
-        while True:
-            # for each gene, has a chance of setting a gene as a random value
-            # from an uniform distribution with the gene's bounds
-
-            newGenes = []
-
-            for i in range( len( self.children[index][0] ) ):
-
-                newGene = np.random.uniform(self.bounds[0][i], self.bounds[1][i]) if (np.random.uniform(0, 1) < prob) else self.children[index][0][i]
-                newGenes.append(newGene)
-
-            #redo bound check
-            if( self.isInBounds([newGenes, 0]) ):
-
-                if(self.children[index][0] != newGenes):
-
-                    self.children[index][0] = newGenes
-                    self.children[index][1] = self.func(self.children[index][0])
-                    self.FES += 1
-
-                    if self.FES == self.maxFES: raise MaxFESReached
-
-                break
 
     def isInBounds(self, ind):
         """Bound checking function for the genes. Used for mutation and crossover."""
 
-        for i in range( len(ind[0]) ):
+        for i in range( self.dimensions ):
 
             if not (self.bounds[0][i] <= ind[0][i] <= self.bounds[1][i]): return False
             # if this gene is in the bounds, inBounds keeps its True value.
@@ -388,13 +380,26 @@ class GeneticAlgorithm(object):
                         beta = ( np.random.uniform( -alpha, 1 + alpha ) )
                         gene = parent1[0][j] + beta * (parent2[0][j] - parent1[0][j])
 
-                        if( self.bounds[0][j] <= gene <= self.bounds[1][j] ):
-                            genes.append(gene)
+                        if (j < self.dimensions):
+
+                            if( self.bounds[0][j] <= gene <= self.bounds[1][j] ):
+                                genes.append(gene)
+                                break
+                                #Fora dos limites? Refazer.
+
+                        else:
+
+                            if(gene < self.adaptiveEpsilon):
+                                gene = self.adaptiveEpsilon
+                                genes.append(gene)
+
+                            else:
+                                genes.append(gene)
+
                             break
-                            #Fora dos limites? Refazer.
 
                 child.append(genes)
-                child.append(self.func(genes))
+                child.append(self.func(genes[:self.dimensions]))
                 self.FES += 1
                 if self.FES == self.maxFES: raise MaxFESReached
 
@@ -453,11 +458,11 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    GA = GeneticAlgorithm(cec2005.F1(10), bounds, eliteSize=1, popSize=50)
+    GA = AdaptiveGA(cec2005.F1(10), bounds, eliteSize=1, popSize=50, adaptiveEpsilon=0.1)
 
     GA.setParentSelection(GA.tournamentSelection, (True,) )
     GA.setCrossover(GA.blxAlphaCrossover, (0.5, 0.6)) # alpha, prob
-    GA.setMutation(GA.creepMutation, (0.05, 0, 1)) # prob, mean, sigma
+    GA.setMutation(GA.adaptiveCreepMutation, (1,)) # prob
     GA.setNewPopSelection(GA.tournamentSelection, (False, ))
     # GA.setNewPopSelection(GA.generationalSelection, None)
     GA.execute()
