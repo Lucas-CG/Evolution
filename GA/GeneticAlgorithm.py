@@ -450,16 +450,19 @@ if __name__ == '__main__':
 
     bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
 
+    func = cec2005.F1(10)
     start = time.time()
 
     # Initialization
-    GA = GeneticAlgorithm(cec2005.F1(10), bounds, eliteSize=1, popSize=50)
+    GA = GeneticAlgorithm(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, matingPoolSize=100, popSize=100) #F5 = -310
 
     GA.setParentSelection(GA.tournamentSelection, (True,) )
-    GA.setCrossover(GA.blxAlphaCrossover, (0.5, 0.6)) # alpha, prob
-    GA.setMutation(GA.creepMutation, (0.05, 0, 1)) # prob, mean, sigma
-    GA.setNewPopSelection(GA.tournamentSelection, (False, ))
+    GA.setCrossover(GA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
+    # GA.setMutation(GA.creepMutation, (1, 0, 1)) # prob, mean, sigma
+    GA.setMutation(GA.uniformMutation, (0.05, )) # prob, mean, sigma
+    # GA.setNewPopSelection(GA.tournamentSelection, (False, ))
     # GA.setNewPopSelection(GA.generationalSelection, None)
+    GA.setNewPopSelection(GA.genitor, None)
     GA.execute()
     results = GA.results
 

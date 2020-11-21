@@ -1,26 +1,24 @@
-from GeneticAlgorithm import GeneticAlgorithm
+from AdaptiveGA import AdaptiveGA
 from optproblems import cec2005
 # import time
 
 if __name__ == '__main__':
 
     dimensions = 10
-    func = cec2005.F2(dimensions)
+    func = cec2005.F4(dimensions)
     bounds = [ [-100 for i in range(dimensions)], [100 for i in range(dimensions)] ]
     # 10 dimensions; each dimension variable varies within [-100, +100]
 
     # start = time.time()
 
     # Initialization
-    GA = GeneticAlgorithm(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, matingPoolSize=100, popSize=100) #F5 = -310
+    GA = AdaptiveGA(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05) #F5 = -310
 
     GA.setParentSelection(GA.tournamentSelection, (True,) )
     GA.setCrossover(GA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
-    # GA.setMutation(GA.creepMutation, (1, 0, 1)) # prob, mean, sigma
-    GA.setMutation(GA.uniformMutation, (0.05, )) # prob, mean, sigma
-    # GA.setNewPopSelection(GA.tournamentSelection, (False, ))
-    # GA.setNewPopSelection(GA.generationalSelection, None)
+    GA.setMutation(GA.adaptiveCreepMutation, (1,)) # prob
     GA.setNewPopSelection(GA.genitor, None)
+    # GA.setNewPopSelection(GA.generationalSelection, None)
     GA.execute()
     results = GA.results
 

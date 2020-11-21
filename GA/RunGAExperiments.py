@@ -1,4 +1,4 @@
-from AdaptiveGA import AdaptiveGA
+from GeneticAlgorithm import GeneticAlgorithm
 from optproblems import cec2005
 # import time
 
@@ -12,13 +12,15 @@ if __name__ == '__main__':
     # start = time.time()
 
     # Initialization
-    GA = AdaptiveGA(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05) #F5 = -310
+    GA = GeneticAlgorithm(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, matingPoolSize=100, popSize=100) #F5 = -310
 
     GA.setParentSelection(GA.tournamentSelection, (True,) )
     GA.setCrossover(GA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
-    GA.setMutation(GA.adaptiveCreepMutation, (1,)) # prob
-    GA.setNewPopSelection(GA.genitor, None)
+    # GA.setMutation(GA.creepMutation, (1, 0, 1)) # prob, mean, sigma
+    GA.setMutation(GA.uniformMutation, (0.05, )) # prob, mean, sigma
+    # GA.setNewPopSelection(GA.tournamentSelection, (False, ))
     # GA.setNewPopSelection(GA.generationalSelection, None)
+    GA.setNewPopSelection(GA.genitor, None)
     GA.execute()
     results = GA.results
 
