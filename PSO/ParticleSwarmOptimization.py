@@ -1,8 +1,5 @@
 import numpy as np
 
-def getSecond(ind):
-    return ind[1]
-
 class MaxFESReached(Exception):
     """Exception used to interrupt the DE operation when the maximum number of fitness evaluations is reached."""
     pass
@@ -63,10 +60,10 @@ class ParticleSwarmOptimization(object):
         self.fVals = np.array([0 for i in range(self.popSize)]) if crit == "min" else np.array([0 for i in range(self.popSize)])
         self.pBest = np.zeros((self.popSize, self.dimensions))
         self.pBestFVals = np.array([np.inf for i in range(self.popSize)]) if crit == "min" else np.array([-np.inf for i in range(self.popSize)])
-        self.calculateFitnessPop()
 
     def execute(self):
 
+        self.calculateFitnessPop()
         metrics = self.getFitnessMetrics() # post-initialization: generation 0
 
         # Arrays for collecting metrics
@@ -82,24 +79,14 @@ class ParticleSwarmOptimization(object):
 
         while ( abs(self.bestSoFar - self.optimum) > self.tol ):
 
-            try:
+            self.calculateNewSpeeds()
+            self.updatePositions()
 
-                if(self.mutationParams): self.mutation(*self.mutationParams) # tem parâmetro definido?
-                else: self.mutation() # se não tiver, roda sem.
+            try:
+                self.calculateFitnessPop()
 
             except MaxFESReached:
                 break
-
-            try:
-
-                if(self.crossoverParams): self.crossover(*self.crossoverParams)
-                else: self.crossover()
-
-            except MaxFESReached:
-                break
-                #Exit the loop, going to the result saving part
-
-            self.selection()
 
             metrics = self.getFitnessMetrics()
 
@@ -128,19 +115,15 @@ class ParticleSwarmOptimization(object):
 
         for i in range(self.popSize):
             # Fitness calculations
-            self.fvals[i] = self.func(self.positions[i])
+            self.fVals[i] = self.func(self.positions[i])
             self.FES += 1
             if self.FES == self.maxFES: raise MaxFESReached
 
-            if(crit == "min"):
+            if(self.crit == "min"):
 
                 if(self.fVals[i] < self.pBestFVals[i]):
                     self.pBest[i] = self.positions[i]
                     self.pBestFVals[i] = self.fVals[i]
-
-                if(self.fVals[i] < self.gBestValue):
-                    self.gBestIndex = i
-                    self.gBestValue = self.fVals[í]
 
             else:
 
@@ -148,9 +131,6 @@ class ParticleSwarmOptimization(object):
                     self.pBest[i] = self.positions[i]
                     self.pBestFVals[i] = self.fVals[i]
 
-                if(self.fVals[i] > self.gBestValue):
-                    self.gBestIndex = i
-                    self.gBestValue = self.fVals[í]
 
     def getFitnessMetrics(self):
 
@@ -174,21 +154,33 @@ class ParticleSwarmOptimization(object):
 
         for i in range(self.popSize):
 
-            total += self.fvals[i]
+            total += self.fVals[i]
 
-            if (top < self.fvals[i]):
-                top = self.fvals[i]
+            if (top < self.fVals[i]):
+                top = self.fVals[i]
                 topPoints = [ self.positions[i] ]
 
-            elif (top == self.fvals[i]):
+            elif (top == self.fVals[i]):
                 topPoints.append(self.positions[i])
 
-            if (bottom > self.fvals[i]):
-                bottom = self.fvals[i]
+            if (bottom > self.fVals[i]):
+                bottom = self.fVals[i]
                 bottomPoints = [ self.positions[i] ]
 
-            elif (bottom == self.fvals[i]):
+            elif (bottom == self.fVals[i]):
                 bottomPoints.append(self.positions[i])
+
+            if(self.crit == "min"):
+
+                if(self.fVals[i] < self.gBestValue):
+                    self.gBestIndex = i
+                    self.gBestValue = self.fVals[i]
+
+            else:
+
+                if(self.fVals[i] > self.gBestValue):
+                    self.gBestIndex = i
+                    self.gBestValue = self.fVals[í]
 
         avg = total/self.popSize
 
@@ -201,138 +193,30 @@ class ParticleSwarmOptimization(object):
 
     def calculateNewSpeeds(self):
 
-
-    def classicMutation(self, base="rand", F=0.5, nDiffs=1):
-        """Executes the mutation procedure for the entire population. Parameters:
-        - base: string that identifies who is the perturbed vector for mutation. "rand" (default) choses random vectors;
-        "best" choses the population's best solution.
-        "current to best adds a perturbation that is the distance between the current individual and the best one"
-        - F ∈ [0, 2]; defaults to 1: affects the mutation strength;
-        - nDiffs (integer, defaults to 1): number of employed difference vector"""
-
-        self.mutedPop = []
-
         for i in range(self.popSize):
+            self.velocities[i] += 2 * np.random.uniform(0, 1) * (self.pBest[i] - self.positions[i]) # personal nostalgia
+            self.velocities[i] += 2 * np.random.uniform(0, 1) * (self.pBest[self.gBestIndex] - self.positions[i]) # global knowledge
 
-            while True:
+    def updatePositions(self):
 
-                selectedIndexes = []
+        for i in range(self.popSize): # population
 
-                x = None
-                perturbation = np.zeros(self.dimensions)
-                # numpy array: [0 0 ... 0] - size = number of dimensions
+            self.positions[i] += self.velocities[i]
 
-                if base == "rand":
-                    xIndex = np.random.randint(0, self.popSize)
-                    x = self.pop[xIndex]
-                    selectedIndexes.append(xIndex)
+            # bound checking: if the bounds are trespassed, the variables are truncated (commented: reset as random)
+            for j in range(self.dimensions): # dimension
 
-                elif base == "best":
-                    x = self.pop[self.bestIndex]
-                    selectedIndexes.append(self.bestIndex)
+                if(self.positions[i][j] < self.bounds[0][j]):
+                    self.positions[i][j] = self.bounds[0][j]
+                    # self.positions[i][j] = np.random.uniform(self.bounds[0][j], self.bounds[1][j])
 
-                elif base == "current-to-best":
-                    x = self.pop[i]
-                    best = self.pop[self.bestIndex]
-                    selectedIndexes.append(i)
-                    selectedIndexes.append(self.bestIndex)
-
-                else:
-                    raise ValueError("DifferentialEvolution: mutation: best expects values 'rand', 'best' or 'current-to-best'.")
-
-                for j in range(nDiffs):
-
-                    ind1, ind2 = None, None
-                    index1, index2 = -1, -1
-
-                    # Choosing vectors that were not already chosen
-                    while True:
-
-                        index1 = np.random.randint(0, self.popSize)
-
-                        if(index1 not in selectedIndexes):
-                            ind1 = self.pop[index1]
-                            selectedIndexes.append(index1)
-                            break
-
-                    while True:
-
-                        index2 = np.random.randint(0, self.popSize)
-
-                        if(index2 not in selectedIndexes):
-                            ind2 = self.pop[index2]
-                            selectedIndexes.append(index2)
-                            break
-
-                perturbation += F * (ind1[0] - ind2[0]) # ind[0] carries its genes
-
-                if base == "current-to-best":
-
-                    perturbation += F * (best[0] - x[0])
-
-                v = [x[0] + perturbation, 0]
-
-                if(self.isInBounds(v)):
-
-                    v[1] = self.func(v[0])
-                    self.FES += 1
-                    if self.FES == self.maxFES: raise MaxFESReached
-                    self.mutedPop.append(v) # x[0]: genes / second element: fitness value
-
-                    break
-
-    def classicCrossover(self, type="bin", cr=0.8):
-        """Defines the crossover, which forms the trial vectors. Its parameters are:
-        - cr (int ∈ [0, 1]), is the crossover constant, which regulates the proportion
-        of genes passed by each parent;
-        - type: string (defaults to 'bin'): the type of crossover procedure. Currently, only 'bin',
-        corresponding to independent binomial experiments is supported."""
-
-        self.crossedPop = []
-
-        if(type == "bin"):
-
-            for i in range(self.popSize): # iterating through individuals
-
-                crossedInd = [ np.zeros(self.dimensions), 0]
-                randDim = np.random.randint(0, self.dimensions) # a random position WILL receive a muted parameter
-
-                for j in range(self.dimensions): # iterating through dimensions
-
-                    if (np.random.uniform(0, 1) < cr or j == randDim):
-                        # crossover executed with probability crossProb
-                        # if the current dimension is randDim, this position receives the muted gen
-
-                        crossedInd[0][j] = self.mutedPop[i][0][j] # mutedPop indexes: individual, genes, dimension
-
-                    else:
-                        crossedInd[0][j] = self.pop[i][0][j]
-
-                crossedInd[1] = self.func(crossedInd[0])
-                self.FES += 1
-                if self.FES == self.maxFES: raise MaxFESReached
-                self.crossedPop.append(crossedInd)
-
-    def selection(self):
-        """Defines the selection procedure for DEs."""
-
-        finalPop = []
-
-        for i in range(self.popSize):
-
-            finalInd = None
-
-            if self.crit == "min": finalInd = self.mutedPop[i] if self.mutedPop[i][1] <= self.pop[i][1] else self.pop[i] # compara valores de f. escolhe o de menor aptidão
-            else: finalInd = self.mutedPop[i] if self.mutedPop[i][1] >= self.pop[i][1] else self.pop[i] # compara valores de f. escolhe o de menor aptidão
-
-            finalPop.append(finalInd)
-
-        self.pop = finalPop
-
+                if(self.positions[i][j] > self.bounds[1][j]):
+                    self.positions[i][j] = self.bounds[1][j]
+                    # self.positions[i][j] = np.random.uniform(self.bounds[0][j], self.bounds[1][j])
 
 if __name__ == '__main__':
 
-    # Test of the DE's performance over CEC2005's F1 (shifted sphere)
+    # Test of the PSO's performance over CEC2005's F1 (shifted sphere)
 
     import time
     from optproblems import cec2005
@@ -342,13 +226,11 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    DE = DifferentialEvolution(cec2005.F1(10), bounds)
-    DE.setMutation(DE.classicMutation, ("rand", 1, 1)) # base, F, nDiffs
-    DE.setCrossover(DE.classicCrossover, ("bin", 0.5)) # type, CR
-    DE.execute()
-    results = DE.results
+    PSO = ParticleSwarmOptimization(cec2005.F1(10), bounds)
+    PSO.execute()
+    results = PSO.results
 
-    print("DE: for criterion = " + DE.crit + ", reached optimum of " + str(results["minFits"][-1]) +
+    print("PSO: for criterion = " + PSO.crit + ", reached optimum of " + str(results["minFits"][-1]) +
     " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
     " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
 
