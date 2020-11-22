@@ -7,7 +7,7 @@ def runDE(runid):
 
 if __name__ == "__main__":
 
-    runs = 8
+    runs = 25
     p = Pool(runs)
     outputs = p.imap(runDE, range(runs))
     for output in outputs:

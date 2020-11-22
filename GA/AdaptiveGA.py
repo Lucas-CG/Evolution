@@ -102,8 +102,6 @@ class AdaptiveGA(object):
 
     def execute(self):
 
-        self.getElite() # gets the best values if self.eliteSize > 0; does nothing otherwise
-
         metrics = self.getFitnessMetrics() # post-initialization: generation 0
 
         # Arrays for collecting metrics
@@ -118,6 +116,8 @@ class AdaptiveGA(object):
         avgFits = [ metrics["avg"] ]
 
         while ( abs(self.bestSoFar - self.optimum) > self.tol ):
+
+            self.getElite() # gets the best values if self.eliteSize > 0; does nothing otherwise
 
             if(self.parentSelectionParams): self.parentSelection(*self.parentSelectionParams) # tem parâmetro definido?
             else: self.parentSelection() # se não tiver, roda sem.

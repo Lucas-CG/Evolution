@@ -1,5 +1,6 @@
-from GeneticAlgorithm import GeneticAlgorithm
+from ParticleSwarmOptimization import ParticleSwarmOptimization
 from optproblems import cec2005
+# import time
 
 if __name__ == '__main__':
 
@@ -8,22 +9,17 @@ if __name__ == '__main__':
     bounds = [ [-100 for i in range(dimensions)], [100 for i in range(dimensions)] ]
     # 10 dimensions; each dimension variable varies within [-100, +100]
 
-    # start = time.time()
-
     # Initialization
-    GA = GeneticAlgorithm(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=0, matingPoolSize=100, popSize=100) #F5 = -310
+    PSO = ParticleSwarmOptimization(func, bounds, popSize=90, clerkK=False, inertiaDecay=True)
+    PSO.execute()
+    results = PSO.results
 
-    GA.setParentSelection(GA.tournamentSelection, (True,) )
-    GA.setCrossover(GA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
-    GA.setMutation(GA.uniformMutation, (0.05, )) # prob, mean, sigma
-    GA.setNewPopSelection(GA.genitor, None)
-    GA.execute()
-    results = GA.results
+    # start = time.time()
 
     # Treating results
 
     error = results["errors"][-1]
-    success = results["errors"][-1] < GA.tol
+    success = results["errors"][-1] < PSO.tol
     generation = results["generations"][-1]
     FESCount = results["FESCounts"][-1]
 

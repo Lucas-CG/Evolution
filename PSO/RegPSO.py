@@ -4,11 +4,12 @@ class MaxFESReached(Exception):
     """Exception used to interrupt the DE operation when the maximum number of fitness evaluations is reached."""
     pass
 
-class ParticleSwarmOptimization(object):
+class RegPSO(object):
     """Implements a real-valued Particle Swarm Optimization."""
 
     def __init__(self, func, bounds, popSize=None, globalWeight=2.05,
-    localWeight=2.05, clerkK=False, inertiaDecay=True, crit="min", optimum=-450, maxFES=None, tol=1e-08):
+    localWeight=2.05, clerkK=False, inertiaDecay=True, prematureThreshold=1.1e-04,
+    crit="min", optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
@@ -33,6 +34,8 @@ class ParticleSwarmOptimization(object):
         self.dimensions = len(self.bounds[0])
         self.clerkK = clerkK
         self.inertiaDecay = inertiaDecay
+        self.prematureThreshold = prematureThreshold
+        self.regroupingFactor = 6/(5*self.prematureThreshold)
 
         if(popSize): self.popSize = popSize
         else: self.popSize = 10 * self.dimensions
@@ -59,6 +62,8 @@ class ParticleSwarmOptimization(object):
         self.pBestFVals = None
         self.gBestIndex = 0
         self.gBestValue = np.inf if crit == "min" else -np.inf
+        self.swarmRadius = 0 # maximum Euclidean distance from the global best
+        self.originalRanges = np.array([ abs(self.bounds[0][i] - self.bounds[1][i]) for i in range (self.dimensions) ])
         self.FES = 0 # function evaluations
         self.genCount = 0
         self.bestSoFar = 0
@@ -135,8 +140,17 @@ class ParticleSwarmOptimization(object):
                 "minPoints": minPoints,
                 "avgFits": avgFits}
 
+            self.calculateSwarmRadius()
+            print(self.swarmRadius)
+            print(self.prematureThreshold)
+
+            if self.swarmRadius < self.prematureThreshold:
+                self.regroup()
+
     def calculateFitnessPop(self):
         """Calculates the fitness values for the entire population, and updates personal and group best values."""
+
+        self.swarmRadius = -np.inf # maximum Euclidean distance from the global best
 
         for i in range(self.popSize):
             # Fitness calculations
@@ -249,6 +263,47 @@ class ParticleSwarmOptimization(object):
                     # self.positions[i][j] = self.bounds[1][j]
                     self.positions[i][j] = np.random.uniform(self.bounds[0][j], self.bounds[1][j])
 
+    def calculateSwarmRadius(self):
+
+        for i in range(self.popSize):
+
+            dist = np.linalg.norm( self.positions[i] - self.pBest[self.gBestIndex] )
+
+            if dist > self.swarmRadius:
+                self.swarmRadius = dist
+
+        self.swarmRadius /= np.linalg.norm( np.array(self.bounds[1]) - np.array(self.bounds[0]) ) # normalizing by the diameter
+
+    def regroup(self):
+
+        print("oi")
+        # defining the new range (remember that the original range - self.originalRanges - is calculated
+        # on __init__)
+
+        # checking the maximum distance to the global best for each dimension
+
+        maxDists = np.array([-np.inf for i in range(self.dimensions)])
+
+        for i in range(self.popSize):
+            for j in range(self.dimensions):
+                if (self.positions[i][j] - self.pBest[self.gBestIndex][j] > maxDists[j]):
+                    maxDists[j] = self.positions[i][j] - self.pBest[self.gBestIndex][j]
+
+        newRange = self.regroupingFactor * maxDists
+
+        for i in range(self.popSize):
+
+            randomVec = np.zeros(self.dimensions)
+
+            for j in range(self.dimensions):
+
+                randomVec[j] = np.random.uniform(-newRange[j], +newRange[j])
+
+            self.positions[i] = self.pBest[self.gBestIndex] + randomVec
+
+        self.vMax = 0.05 * newRange
+
+
 if __name__ == '__main__':
 
     # Test of the PSO's performance over CEC2005's F1 (shifted sphere)
@@ -261,7 +316,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    PSO = ParticleSwarmOptimization(cec2005.F5(10), bounds, popSize=90, clerkK=False, inertiaDecay=True)
+    PSO = RegPSO(cec2005.F3(10), bounds, popSize=30, clerkK=False, inertiaDecay=True)
     PSO.execute()
     results = PSO.results
 

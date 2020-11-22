@@ -92,8 +92,6 @@ class GeneticAlgorithm(object):
 
     def execute(self):
 
-        self.getElite() # gets the best values if self.eliteSize > 0; does nothing otherwise
-
         metrics = self.getFitnessMetrics() # post-initialization: generation 0
 
         # Arrays for collecting metrics
@@ -108,6 +106,8 @@ class GeneticAlgorithm(object):
         avgFits = [ metrics["avg"] ]
 
         while ( abs(self.bestSoFar - self.optimum) > self.tol ):
+
+            self.getElite() # gets the best values if self.eliteSize > 0; does nothing otherwise
 
             if(self.parentSelectionParams): self.parentSelection(*self.parentSelectionParams) # tem parâmetro definido?
             else: self.parentSelection() # se não tiver, roda sem.
@@ -282,7 +282,7 @@ class GeneticAlgorithm(object):
                 break
 
     def uniformMutation(self, index, prob=0.05):
-        """Executes a creep mutation on the individual (child) with a specified index."""
+        """Executes a uniform mutation on the individual (child) with a specified index."""
 
         while True:
             # for each gene, has a chance of setting a gene as a random value
@@ -334,6 +334,7 @@ class GeneticAlgorithm(object):
                 elite = self.pop[:self.eliteSize]
 
             self.elite = elite
+
 
     def tournamentSelection(self, crossover = True):
         # use with matingPool for parent selection

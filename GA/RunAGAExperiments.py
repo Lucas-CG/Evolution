@@ -12,13 +12,12 @@ if __name__ == '__main__':
     # start = time.time()
 
     # Initialization
-    GA = AdaptiveGA(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05) #F5 = -310
+    GA = AdaptiveGA(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05) #F5 = -310
 
     GA.setParentSelection(GA.tournamentSelection, (True,) )
     GA.setCrossover(GA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
     GA.setMutation(GA.adaptiveCreepMutation, (1,)) # prob
     GA.setNewPopSelection(GA.genitor, None)
-    # GA.setNewPopSelection(GA.generationalSelection, None)
     GA.execute()
     results = GA.results
 
