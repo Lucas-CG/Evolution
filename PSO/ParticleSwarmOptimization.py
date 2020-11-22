@@ -7,7 +7,8 @@ class MaxFESReached(Exception):
 class ParticleSwarmOptimization(object):
     """Implements a real-valued Particle Swarm Optimization."""
 
-    def __init__(self, func, bounds, popSize=None, vMax=None, globalWeight=2.05, localWeight=2.05, crit="min", optimum=-450, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=None, globalWeight=2.05,
+    localWeight=2.05, clerkK=True, inertiaDecay=True, crit="min", optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
@@ -30,6 +31,8 @@ class ParticleSwarmOptimization(object):
         self.optimum = optimum
         self.tol = tol
         self.dimensions = len(self.bounds[0])
+        self.clerkK = clerkK
+        self.inertiaDecay = inertiaDecay
 
         if(popSize): self.popSize = popSize
         else: self.popSize = 10 * self.dimensions
@@ -37,8 +40,8 @@ class ParticleSwarmOptimization(object):
         if(maxFES): self.maxFES = maxFES
         else: self.maxFES = 10000 * self.dimensions
 
-        self.vMax = [ (self.bounds[1][i] - self.bounds[0][i])/2 for i in range( len( self.bounds[0] ) ) ]
-        # self.vMax = [ self.dimensions for i in range( len( self.bounds[0] ) ) ]
+        # self.vMax = [ (self.bounds[1][i] - self.bounds[0][i])/2 for i in range( len( self.bounds[0] ) ) ]
+        self.vMax = [ self.dimensions for i in range( len( self.bounds[0] ) ) ]
 
         self.globalWeight = globalWeight
         self.localWeight = localWeight
@@ -46,7 +49,7 @@ class ParticleSwarmOptimization(object):
         self.finalInertiaWeight = 0.4
         self.inertiaWeight = self.initialInertiaWeight # weight modified by decay
         phi = self.localWeight + self.globalWeight
-        self.K = abs( 2 / ( phi - 2 + np.sqrt( np.power(phi, 2) - 4*phi ) ) ) if phi > 4 else 1 # Clerc's constriction factor
+        self.K = abs( 2 / ( phi - 2 + np.sqrt( np.power(phi, 2) - 4*phi ) ) ) if phi > 4 and self.clerkK else 1 # Clerc's constriction factor
         print(self.K)
 
         # Control attributes
@@ -212,7 +215,8 @@ class ParticleSwarmOptimization(object):
 
     def calculateNewSpeeds(self):
 
-        self.inertiaWeight = ( (self.maxFES - self.FES)/self.maxFES ) * (self.initialInertiaWeight - self.finalInertiaWeight) + self.finalInertiaWeight
+        if(self.inertiaDecay):
+            self.inertiaWeight = ( (self.maxFES - self.FES)/self.maxFES ) * (self.initialInertiaWeight - self.finalInertiaWeight) + self.finalInertiaWeight
 
         for i in range(self.popSize):
             self.velocities[i] = self.K * ( self.inertiaWeight * self.velocities[i] + # inertia
@@ -258,7 +262,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    PSO = ParticleSwarmOptimization(cec2005.F1(10), bounds, popSize=100)
+    PSO = ParticleSwarmOptimization(cec2005.F5(10), bounds, popSize=90, clerkK=False, inertiaDecay=True)
     PSO.execute()
     results = PSO.results
 
