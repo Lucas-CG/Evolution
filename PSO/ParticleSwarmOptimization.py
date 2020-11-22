@@ -7,7 +7,7 @@ class MaxFESReached(Exception):
 class ParticleSwarmOptimization(object):
     """Implements a real-valued Particle Swarm Optimization."""
 
-    def __init__(self, func, bounds, popSize=None, crit="min", optimum=-450, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=None, vMax=None, globalWeight=2.05, localWeight=2.05, crit="min", optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
@@ -20,6 +20,10 @@ class ParticleSwarmOptimization(object):
         # Attribute initialization
 
         # From arguments
+
+        if( len(bounds[0]) != len(bounds[1]) ):
+            raise ValueError("The bound arrays have different sizes.")
+
         self.func = func
         self.bounds = bounds
         self.crit = crit
@@ -33,9 +37,17 @@ class ParticleSwarmOptimization(object):
         if(maxFES): self.maxFES = maxFES
         else: self.maxFES = 10000 * self.dimensions
 
+        # self.vMax = [ (self.bounds[1][i] - self.bounds[0][i])/25 for i in range( len( self.bounds[0] ) ) ]
+        self.vMax = [ self.dimensions for i in range( len( self.bounds[0] ) ) ]
+
+        self.globalWeight = globalWeight
+        self.localWeight = localWeight
+        self.inertiaWeight = 0.9
+        self.newInertiaWeight = self.inertiaWeight # weight modified by decay
+
         # Control attributes
         self.positions = []
-        self.velocities = None
+        self.velocities = []
         self.fVals = None
         self.pBest = None
         self.pBestFVals = None
@@ -47,17 +59,24 @@ class ParticleSwarmOptimization(object):
         self.bestIndex = 0 # index of the best individual in the population
         self.results = None
 
-        if( len(self.bounds[0]) != len(self.bounds[1]) ):
-            raise ValueError("The bound arrays have different sizes.")
-
         # Population initialization as random (uniform)
         for i in range(self.popSize):
 
             self.positions.append( np.random.uniform(self.bounds[0], self.bounds[1]) )
 
         self.positions = np.array(self.positions) # result: matrix. Lines are individuals; columns are dimensions
+
+        # Initializing speeds as random between maximum and minimum values
+        # for i in range(self.popSize):
+
+            # self.velocities.append( [np.random.uniform(-self.vMax[j], self.vMax[j]) for j in range(self.dimensions)] )
+
+
+        # self.velocities = np.array(self.velocities)
         self.velocities = np.zeros((self.popSize, self.dimensions))
-        self.fVals = np.array([0 for i in range(self.popSize)]) if crit == "min" else np.array([0 for i in range(self.popSize)])
+
+
+        self.fVals = np.zeros(self.popSize)
         self.pBest = np.zeros((self.popSize, self.dimensions))
         self.pBestFVals = np.array([np.inf for i in range(self.popSize)]) if crit == "min" else np.array([-np.inf for i in range(self.popSize)])
 
@@ -125,11 +144,19 @@ class ParticleSwarmOptimization(object):
                     self.pBest[i] = self.positions[i]
                     self.pBestFVals[i] = self.fVals[i]
 
+                if(self.fVals[i] < self.gBestValue):
+                    self.gBestIndex = i
+                    self.gBestValue = self.fVals[i]
+
             else:
 
                 if(self.fVals[i] > self.pBestFVals[i]):
                     self.pBest[i] = self.positions[i]
                     self.pBestFVals[i] = self.fVals[i]
+
+                if(self.fVals[i] > self.gBestValue):
+                    self.gBestIndex = i
+                    self.gBestValue = self.fVals[í]
 
 
     def getFitnessMetrics(self):
@@ -170,18 +197,6 @@ class ParticleSwarmOptimization(object):
             elif (bottom == self.fVals[i]):
                 bottomPoints.append(self.positions[i])
 
-            if(self.crit == "min"):
-
-                if(self.fVals[i] < self.gBestValue):
-                    self.gBestIndex = i
-                    self.gBestValue = self.fVals[i]
-
-            else:
-
-                if(self.fVals[i] > self.gBestValue):
-                    self.gBestIndex = i
-                    self.gBestValue = self.fVals[í]
-
         avg = total/self.popSize
 
         if(self.crit == "min"): self.bestSoFar = bottom
@@ -193,9 +208,24 @@ class ParticleSwarmOptimization(object):
 
     def calculateNewSpeeds(self):
 
+        self.newInertiaWeight = max(self.inertiaWeight / (self.FES / self.maxFES), 0.4)
+        phi = self.localWeight + self.globalWeight
+        K = 0.73 if phi > 4.1 else 1
+
         for i in range(self.popSize):
-            self.velocities[i] += 2 * np.random.uniform(0, 1) * (self.pBest[i] - self.positions[i]) # personal nostalgia
-            self.velocities[i] += 2 * np.random.uniform(0, 1) * (self.pBest[self.gBestIndex] - self.positions[i]) # global knowledge
+            self.velocities[i] = K * ( self.newInertiaWeight * self.velocities[i] + # inertia
+            self.localWeight * np.random.uniform(0, 1) * (self.pBest[i] - self.positions[i]) + # local "nostalgia"
+            self.globalWeight * np.random.uniform(0, 1) * (self.pBest[self.gBestIndex] - self.positions[i]) ) # global knowledge
+
+            # comparing speeds with speed limits at each dimension
+
+            for j in range(self.dimensions):
+
+                if(self.velocities[i][j] > self.vMax[j]):
+                    self.velocities[i][j] = self.vMax[j]
+
+                if(self.velocities[i][j] < -self.vMax[j]):
+                    self.velocities[i][j] = -self.vMax[j]
 
     def updatePositions(self):
 
@@ -226,7 +256,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    PSO = ParticleSwarmOptimization(cec2005.F1(10), bounds)
+    PSO = ParticleSwarmOptimization(cec2005.F2(10), bounds)
     PSO.execute()
     results = PSO.results
 

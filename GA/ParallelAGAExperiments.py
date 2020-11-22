@@ -7,7 +7,7 @@ def runGA(runid):
 
 if __name__ == "__main__":
 
-    runs = 25
+    runs = 8
     p = Pool(runs)
     outputs = p.imap(runGA, range(runs))
     for output in outputs:
