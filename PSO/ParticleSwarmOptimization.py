@@ -37,13 +37,17 @@ class ParticleSwarmOptimization(object):
         if(maxFES): self.maxFES = maxFES
         else: self.maxFES = 10000 * self.dimensions
 
-        # self.vMax = [ (self.bounds[1][i] - self.bounds[0][i])/25 for i in range( len( self.bounds[0] ) ) ]
-        self.vMax = [ self.dimensions for i in range( len( self.bounds[0] ) ) ]
+        self.vMax = [ (self.bounds[1][i] - self.bounds[0][i])/2 for i in range( len( self.bounds[0] ) ) ]
+        # self.vMax = [ self.dimensions for i in range( len( self.bounds[0] ) ) ]
 
         self.globalWeight = globalWeight
         self.localWeight = localWeight
-        self.inertiaWeight = 0.9
-        self.newInertiaWeight = self.inertiaWeight # weight modified by decay
+        self.initialInertiaWeight = 0.9
+        self.finalInertiaWeight = 0.4
+        self.inertiaWeight = self.initialInertiaWeight # weight modified by decay
+        phi = self.localWeight + self.globalWeight
+        self.K = abs( 2 / ( phi - 2 + np.sqrt( np.power(phi, 2) - 4*phi ) ) ) if phi > 4 else 1 # Clerc's constriction factor
+        print(self.K)
 
         # Control attributes
         self.positions = []
@@ -67,13 +71,13 @@ class ParticleSwarmOptimization(object):
         self.positions = np.array(self.positions) # result: matrix. Lines are individuals; columns are dimensions
 
         # Initializing speeds as random between maximum and minimum values
-        # for i in range(self.popSize):
+        for i in range(self.popSize):
 
-            # self.velocities.append( [np.random.uniform(-self.vMax[j], self.vMax[j]) for j in range(self.dimensions)] )
+            self.velocities.append( [np.random.uniform(-self.vMax[j], self.vMax[j]) for j in range(self.dimensions)] )
 
 
-        # self.velocities = np.array(self.velocities)
-        self.velocities = np.zeros((self.popSize, self.dimensions))
+        self.velocities = np.array(self.velocities)
+        # self.velocities = np.zeros((self.popSize, self.dimensions))
 
 
         self.fVals = np.zeros(self.popSize)
@@ -208,12 +212,10 @@ class ParticleSwarmOptimization(object):
 
     def calculateNewSpeeds(self):
 
-        self.newInertiaWeight = max(self.inertiaWeight / (self.FES / self.maxFES), 0.4)
-        phi = self.localWeight + self.globalWeight
-        K = 0.73 if phi > 4.1 else 1
+        self.inertiaWeight = ( (self.maxFES - self.FES)/self.maxFES ) * (self.initialInertiaWeight - self.finalInertiaWeight) + self.finalInertiaWeight
 
         for i in range(self.popSize):
-            self.velocities[i] = K * ( self.newInertiaWeight * self.velocities[i] + # inertia
+            self.velocities[i] = self.K * ( self.inertiaWeight * self.velocities[i] + # inertia
             self.localWeight * np.random.uniform(0, 1) * (self.pBest[i] - self.positions[i]) + # local "nostalgia"
             self.globalWeight * np.random.uniform(0, 1) * (self.pBest[self.gBestIndex] - self.positions[i]) ) # global knowledge
 
@@ -237,12 +239,12 @@ class ParticleSwarmOptimization(object):
             for j in range(self.dimensions): # dimension
 
                 if(self.positions[i][j] < self.bounds[0][j]):
-                    self.positions[i][j] = self.bounds[0][j]
-                    # self.positions[i][j] = np.random.uniform(self.bounds[0][j], self.bounds[1][j])
+                    # self.positions[i][j] = self.bounds[0][j]
+                    self.positions[i][j] = np.random.uniform(self.bounds[0][j], self.bounds[1][j])
 
                 if(self.positions[i][j] > self.bounds[1][j]):
-                    self.positions[i][j] = self.bounds[1][j]
-                    # self.positions[i][j] = np.random.uniform(self.bounds[0][j], self.bounds[1][j])
+                    # self.positions[i][j] = self.bounds[1][j]
+                    self.positions[i][j] = np.random.uniform(self.bounds[0][j], self.bounds[1][j])
 
 if __name__ == '__main__':
 
@@ -256,7 +258,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    PSO = ParticleSwarmOptimization(cec2005.F2(10), bounds)
+    PSO = ParticleSwarmOptimization(cec2005.F1(10), bounds, popSize=100)
     PSO.execute()
     results = PSO.results
 
