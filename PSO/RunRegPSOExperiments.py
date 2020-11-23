@@ -1,4 +1,4 @@
-from ParticleSwarmOptimization import ParticleSwarmOptimization
+from RegPSO import RegPSO
 from optproblems import cec2005
 # import time
 
@@ -10,7 +10,7 @@ if __name__ == '__main__':
     # 10 dimensions; each dimension variable varies within [-100, +100]
 
     # Initialization
-    PSO = ParticleSwarmOptimization(func, bounds, popSize=80, globalWeight=2.05, localWeight=2.05, clerkK=False, inertiaDecay=True)
+    PSO = RegPSO(cec2005.F4(10), bounds, popSize=80, clerkK=False, inertiaDecay=True)
     PSO.execute()
     results = PSO.results
 

@@ -261,7 +261,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    PSO = ParticleSwarmOptimization(cec2005.F5(10), bounds, popSize=90, clerkK=False, inertiaDecay=True)
+    PSO = ParticleSwarmOptimization(cec2005.F5(10), bounds, popSize=80, clerkK=False, inertiaDecay=True)
     PSO.execute()
     results = PSO.results
 

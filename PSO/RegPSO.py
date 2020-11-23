@@ -141,8 +141,6 @@ class RegPSO(object):
                 "avgFits": avgFits}
 
             self.calculateSwarmRadius()
-            print(self.swarmRadius)
-            print(self.prematureThreshold)
 
             if self.swarmRadius < self.prematureThreshold:
                 self.regroup()
@@ -275,8 +273,6 @@ class RegPSO(object):
         self.swarmRadius /= np.linalg.norm( np.array(self.bounds[1]) - np.array(self.bounds[0]) ) # normalizing by the diameter
 
     def regroup(self):
-
-        print("oi")
         # defining the new range (remember that the original range - self.originalRanges - is calculated
         # on __init__)
 
@@ -316,7 +312,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    PSO = RegPSO(cec2005.F3(10), bounds, popSize=30, clerkK=False, inertiaDecay=True)
+    PSO = RegPSO(cec2005.F4(10), bounds, popSize=50, clerkK=False, inertiaDecay=True)
     PSO.execute()
     results = PSO.results
 
