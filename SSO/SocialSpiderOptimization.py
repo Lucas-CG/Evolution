@@ -123,7 +123,7 @@ class SocialSpiderOptimization(object):
             if(self.crit == "max"): self.weights[index] = (fVals[i] - worstFVal) / (bestFVal - worstFVal)
             else: self.weights[index] = (worstFVal - fVals[i]) / (worstFVal - bestFVal)
 
-
+    def
 
     def execute(self):
 
