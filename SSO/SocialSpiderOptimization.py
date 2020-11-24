@@ -4,12 +4,10 @@ class MaxFESReached(Exception):
     """Exception used to interrupt the DE operation when the maximum number of fitness evaluations is reached."""
     pass
 
-class RegPSO(object):
+class SocialSpiderOptimization(object):
     """Implements a real-valued Particle Swarm Optimization."""
 
-    def __init__(self, func, bounds, popSize=None, globalWeight=2.05,
-    localWeight=2.05, clerkK=False, inertiaDecay=True, prematureThreshold=1.1e-04,
-    crit="min", optimum=-450, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=None, crit="min", optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
@@ -40,6 +38,9 @@ class RegPSO(object):
         if(popSize): self.popSize = popSize
         else: self.popSize = 10 * self.dimensions
 
+        self.numFemales = np.floor( (0.9 - np.random.uniform(0, 0.25)) * self.popSize )
+        self.numMales = self.popSize - self.numFemales
+
         if(maxFES): self.maxFES = maxFES
         else: self.maxFES = 10000 * self.dimensions
 
@@ -55,9 +56,9 @@ class RegPSO(object):
         self.K = abs( 2 / ( phi - 2 + np.sqrt( np.power(phi, 2) - 4*phi ) ) ) if phi > 4 and self.clerkK else 1 # Clerc's constriction factor
 
         # Control attributes
-        self.positions = []
+        self.spiders = []
         self.velocities = []
-        self.fVals = None
+        self.weights = np.zeros(self.popSize)
         self.pBest = None
         self.pBestFVals = None
         self.gBestIndex = 0
@@ -73,9 +74,10 @@ class RegPSO(object):
         # Population initialization as random (uniform)
         for i in range(self.popSize):
 
-            self.positions.append( np.random.uniform(self.bounds[0], self.bounds[1]) )
+            self.spiders.append( np.random.uniform(self.bounds[0], self.bounds[1]) )
 
-        self.positions = np.array(self.positions) # result: matrix. Lines are individuals; columns are dimensions
+        self.spiders = np.array(self.positions) # result: matrix. Lines are individuals; columns are dimensions
+        # first lines are females; last ones are males
 
         # Initializing speeds as random between maximum and minimum values
         for i in range(self.popSize):
@@ -90,6 +92,38 @@ class RegPSO(object):
         self.fVals = np.zeros(self.popSize)
         self.pBest = np.zeros((self.popSize, self.dimensions))
         self.pBestFVals = np.array([np.inf for i in range(self.popSize)]) if crit == "min" else np.array([-np.inf for i in range(self.popSize)])
+
+    def calculateWeights(self):
+        """Calculates spiders' weights, based on their objective function values."""
+
+        fVals = []
+        bestFVal = np.inf if self.crit == "min" else -np.inf
+        worstFVal = -np.inf if self.crit == "min" else np.inf
+
+        for i in range(self.popSize):
+
+            fVal = self.func(self.spiders[i])
+            self.FES += 1
+            if self.FES == self.maxFES: raise MaxFESReached
+
+            fVals.append(fVal)
+
+            if(crit == "min"):
+
+                if (fVal < bestFVal): bestFVal = fVal
+                if (fVal > worstFVal): worstFVal = fVal
+
+            else:
+
+                if (fVal > bestFVal): bestFVal = fVal
+                if (fVal < worstFVal): worstFVal = fVal
+
+        for i in range(self.popSize):
+
+            if(self.crit == "max"): self.weights[index] = (fVals[i] - worstFVal) / (bestFVal - worstFVal)
+            else: self.weights[index] = (worstFVal - fVals[i]) / (worstFVal - bestFVal)
+
+
 
     def execute(self):
 
@@ -144,37 +178,6 @@ class RegPSO(object):
 
             if self.swarmRadius < self.prematureThreshold:
                 self.regroup()
-
-    def calculateFitnessPop(self):
-        """Calculates the fitness values for the entire population, and updates personal and group best values."""
-
-        self.swarmRadius = -np.inf # maximum Euclidean distance from the global best
-
-        for i in range(self.popSize):
-            # Fitness calculations
-            self.fVals[i] = self.func(self.positions[i])
-            self.FES += 1
-            if self.FES == self.maxFES: raise MaxFESReached
-
-            if(self.crit == "min"):
-
-                if(self.fVals[i] < self.pBestFVals[i]):
-                    self.pBest[i] = self.positions[i]
-                    self.pBestFVals[i] = self.fVals[i]
-
-                if(self.fVals[i] < self.gBestValue):
-                    self.gBestIndex = i
-                    self.gBestValue = self.fVals[i]
-
-            else:
-
-                if(self.fVals[i] > self.pBestFVals[i]):
-                    self.pBest[i] = self.positions[i]
-                    self.pBestFVals[i] = self.fVals[i]
-
-                if(self.fVals[i] > self.gBestValue):
-                    self.gBestIndex = i
-                    self.gBestValue = self.fVals[i]
 
 
     def getFitnessMetrics(self):
