@@ -41,6 +41,7 @@ class SocialSpiderOptimization(object):
         if(maxFES): self.maxFES = maxFES
         else: self.maxFES = 10000 * self.dimensions
 
+
         # Control attributes
         self.spiders = []
         self.numFemales = int(np.floor( (0.9 - np.random.uniform(0, 0.25)) * self.popSize ))
@@ -491,7 +492,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    SSO = SocialSpiderOptimization(cec2005.F2(10), bounds, popSize=30, PF=0.7)
+    SSO = SocialSpiderOptimization(cec2005.F4(10), bounds, popSize=50, PF=0.7)
     SSO.execute()
     results = SSO.results
 
