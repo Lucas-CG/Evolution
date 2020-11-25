@@ -1,15 +1,14 @@
 import numpy as np
-np.seterr("raise")
 import math
 
-#IMPORTANT CHANGE: USED LOG FOR DISTANCE (DISTANCES ARE TOO LARGE!)
+#IMPORTANT CHANGE: USED LOG1P FOR DISTANCE (DISTANCES ARE TOO LARGE!)
 
 class MaxFESReached(Exception):
     """Exception used to interrupt the DE operation when the maximum number of fitness evaluations is reached."""
     pass
 
 class SocialSpiderOptimization(object):
-    """Implements a real-valued Particle Swarm Optimization."""
+    """Implements a real-valued Social Spider Optimization."""
 
     def __init__(self, func, bounds, popSize=None, PF=0.7, crit="min", optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
@@ -94,9 +93,9 @@ class SocialSpiderOptimization(object):
 
                 if (fVal > worstFVal):
                     worstFVal = fVal
-                    self.worstSpiderIndex = [ i ]
+                    self.worstSpiderIndexes = [ i ]
 
-                elif (fVal == bestFVal):
+                elif (fVal == worstFVal):
                     self.worstSpiderIndexes.append(i)
 
             else:
@@ -110,9 +109,9 @@ class SocialSpiderOptimization(object):
 
                 if (fVal < worstFVal):
                     worstFVal = fVal
-                    self.worstSpiderIndex = [ i ]
+                    self.worstSpiderIndexes = [ i ]
 
-                elif (fVal == bestFVal):
+                elif (fVal == worstFVal):
                     self.worstSpiderIndexes.append(i)
 
         self.fVals = fVals
@@ -127,7 +126,7 @@ class SocialSpiderOptimization(object):
 
         for i in range(self.popSize):
 
-            if(crit == "min"):
+            if(self.crit == "min"):
 
                 if (self.fVals[i] < bestFVal):
                     bestFVal = self.fVals[i]
@@ -138,10 +137,10 @@ class SocialSpiderOptimization(object):
 
                 if (self.fVals[i] > worstFVal):
                     worstFVal = self.fVals[i]
-                    self.worstSpiderIndex = [ i ]
+                    self.worstSpiderIndexes = [ i ]
 
-                elif (self.fVals[i] == bestFVal):
-                    self.worstSpiderIndexes.append(i)
+                elif (self.fVals[i] == worstFVal):
+                    self.worstSpiderIndexeses.append(i)
 
             else:
 
@@ -154,9 +153,9 @@ class SocialSpiderOptimization(object):
 
                 if (self.fVals[i] < worstFVal):
                     worstFVal = self.fVals[i]
-                    self.worstSpiderIndex = [ i ]
+                    self.worstSpiderIndexes = [ i ]
 
-                elif (self.fVals[i] == bestFVal):
+                elif (self.fVals[i] == worstFVal):
                     self.worstSpiderIndexes.append(i)
 
     def calculateWeights(self):
@@ -166,12 +165,6 @@ class SocialSpiderOptimization(object):
         worstFVal = self.fVals[self.worstSpiderIndexes[0]]
         bestFVal = self.fVals[self.bestSpiderIndexes[0]]
 
-        print(self.fVals)
-        print(worstFVal)
-        print(bestFVal)
-        print(self.worstSpiderIndexes)
-        print(self.bestSpiderIndexes)
-
         for i in range(self.popSize):
 
             if(self.crit == "max"): self.weights[i] = (self.fVals[i] - worstFVal) / (bestFVal - worstFVal)
@@ -179,14 +172,15 @@ class SocialSpiderOptimization(object):
 
     def distance(self, a, b):
         """Calculates the Euclidean distance between two spiders whose indexes are a and b."""
-        return np.log(np.linalg.norm( self.spiders[a] - self.spiders[b] ))
+        return np.log1p(np.linalg.norm( self.spiders[a] - self.spiders[b] ))
 
     def vibc(self, i):
         """Calculates the Vibc vibrations perceived by spider [i] as a result of spider [c]. Returns the result and c's index.
         [c] is the nearest member to [i] which possesses a higher weight than [i]."""
 
-        chosen = 0
+        chosen = -1
         minDistance = np.inf
+        vib = 0
 
         for c in range(self.popSize):
 
@@ -197,8 +191,11 @@ class SocialSpiderOptimization(object):
                 chosen = c
                 minDistance = distance
 
-        print(minDistance)
-        return self.weights[chosen] * np.exp( -np.power( minDistance, 2 ) ), chosen
+        if(chosen != -1): # found a spider with this criteria.
+            vib = self.weights[chosen] * np.exp( -np.power( minDistance, 2 ) )
+        # if there wasn't any, vib is 0
+
+        return vib, chosen
 
     def vibb(self, i):
         """Calculates the Vibc vibrations perceived by spider [i] as a result of the population's best spider."""
@@ -225,46 +222,51 @@ class SocialSpiderOptimization(object):
 
         return self.weights[chosen] * np.exp( -np.power( minDistance, 2 ) ), chosen
 
-    def isInBounds(self, spider):
-        """Bound checking function for the genes. Used for mutation and crossover."""
+    def checkNCorrectBounds(self, spider):
+        """Bound checking and correcting function for the genes. If bounds are trespassed,
+        the spider is truncated."""
 
-        for i in range( len(spider) ):
+        newSpider = spider[:]
 
-            if not (self.bounds[0][i] <= spider[i] <= self.bounds[1][i]): return False
-            # if this gene is in the bounds, inBounds keeps its True value.
-            # else, it automatically returns False. Escaping to save up iterations.
+        for i in range( len(newSpider) ):
 
-        return True # if it has exited the loop, the genes are valid
+            if(newSpider[i] < self.bounds[0][i]):
+                newSpider[i] = self.bounds[0][i]
+                # newSpider[i] = np.random.uniform(self.bounds[0][1], self.bounds[0][1])
+                # newSpider[i] = 0
+
+            if(newSpider[i] > self.bounds[1][i]):
+                newSpider[i] = self.bounds[1][i]
+                # newSpider[i] = np.random.uniform(self.bounds[0][1], self.bounds[0][1])
+                # newSpider[i] = 0
+
+        return newSpider
 
     def updatePositions(self):
 
         # Female updates (attraction or repulsion)
-        print("Females")
         for f in range(self.numFemales):
 
-            while True:
+            newSpider = None
+            randoms = np.random.uniform(0, 1, 4)
+            alpha = randoms[0]
+            beta = randoms[1]
+            delta = randoms[2]
+            rand = randoms[3]
+            vibcVal, c = self.vibc(f) # value and index
 
-                alpha = np.random.uniform(0, 1)
-                beta = np.random.uniform(0, 1)
-                delta = np.random.uniform(0, 1)
-                rand = np.random.uniform(0, 1)
-                vibcVal, c = self.vibc(f) # value and index
+            draw = np.random.uniform(0, 1)
 
-                draw = np.random.uniform(0, 1)
+            if(draw < self.PF):
+                newSpider = self.spiders[f] + alpha * vibcVal * (self.spiders[c] - self.spiders[f]) + beta * self.vibb(f) * ( self.spiders[self.bestSpiderIndexes[0]] - self.spiders[f] ) + delta * (rand - 0.5)
 
-                if(draw < self.PF):
-                    self.spiders[f] = self.spiders[f] + alpha * vibcVal * (self.spiders[c] - self.spiders[f]) + beta * self.vibb(f) * ( self.spiders[self.bestSpiderIndexes[0]] - self.spiders[f] ) + delta * (rand - 0.5)
+            else:
 
-                else:
+                newSpider = self.spiders[f] - alpha * vibcVal * (self.spiders[c] - self.spiders[f]) - beta * self.vibb(f) * ( self.spiders[self.bestSpiderIndexes[0]] - self.spiders[f] ) + delta * (rand - 0.5)
 
-                    self.spiders[f] = self.spiders[f] - alpha * vibcVal * (self.spiders[c] - self.spiders[f]) - beta * self.vibb(f) * ( self.spiders[self.bestSpiderIndexes[0]] - self.spiders[f] ) + delta * (rand - 0.5)
-
-                print(self.spiders[f])
-                if( self.isInBounds( self.spiders[f] ) ): break
-                # if it is invalid, create another one
+            self.spiders[f] = self.checkNCorrectBounds(newSpider)
 
         # Discovering dominant and non-dominant males
-        print("Males")
         self.isDominant = [False for i in range(self.numMales)] # flags for identifying dominants. Resetted at each iteration.
         maleWeights = self.weights[self.numFemales:]
         medianWeight = np.median(maleWeights) # the median is a threshold for identifying dominant males
@@ -284,31 +286,27 @@ class SocialSpiderOptimization(object):
 
                 self.isDominant[m] = True # preserving flag for the future mating operation
 
-                while True:
+                randoms = np.random.uniform(0, 1, 3)
+                alpha = randoms[0]
+                delta = randoms[1]
+                rand = randoms[2]
+                vibfVal, f = self.vibf(self.numFemales + m) # value and index
+                newSpider = self.spiders[self.numFemales + m] + alpha * vibfVal * (self.spiders[f] - self.spiders[self.numFemales + m]) + delta * (rand - 0.5)
 
-                    alpha = np.random.uniform(0, 1)
-                    delta = np.random.uniform(0, 1)
-                    rand = np.random.uniform(0, 1)
-                    vibfVal, f = self.vibf(self.numFemales + m) # value and index
-
-                    self.spiders[self.numFemales + m] = self.spiders[self.numFemales + m] + alpha * vibfVal * (self.spiders[f] - self.spiders[self.numFemales + m]) + delta * (rand - 0.5)
-
-                    if( self.isInBounds( self.spiders[self.numFemales + m] ) ): break
+                self.spiders[self.numFemales + m] = self.checkNCorrectBounds(newSpider)
 
             else:
 
-                while True:
+                alpha = np.random.uniform(0, 1)
+                newSpider = self.spiders[self.numFemales + m] + alpha * maleWeightedMean
 
-                    alpha = np.random.uniform(0, 1)
-                    self.spiders[self.numFemales + m] = self.spiders[self.numFemales + m] + alpha * maleWeightedMean
-
-                    if( self.isInBounds( self.spiders[self.numFemales + m] ) ): break
+                self.spiders[self.numFemales + m] = self.checkNCorrectBounds(newSpider)
 
     def mating(self):
 
         for m in range(self.numMales):
 
-            if isDominant[m]:
+            if self.isDominant[m]:
 
                 # checking which females will participate (these are inside the radius)
                 femaleIndexes = []
@@ -351,7 +349,7 @@ class SocialSpiderOptimization(object):
 
                         if draw < slots[j]:
 
-                            offspring[i] = self.spiders[ indexes[j] ]
+                            offspring[i] = self.spiders[ indexes[j] ][i]
                             setVar = True
                             break
 
@@ -368,7 +366,7 @@ class SocialSpiderOptimization(object):
                 # ties between worst or best spiders: choose the first
                 if weight > self.weights[self.worstSpiderIndexes[0]]:
 
-                    spiders[self.worstSpiderIndexes[0]] = offspring
+                    self.spiders[self.worstSpiderIndexes[0]] = offspring
                     self.weights[self.worstSpiderIndexes[0]] = weight
                     self.fVals[self.worstSpiderIndexes[0]] = fVal
                     offspringIndex = self.worstSpiderIndexes[0]
@@ -387,8 +385,8 @@ class SocialSpiderOptimization(object):
         if self.FES == self.maxFES: raise MaxFESReached
 
         weight = 0
-        if(self.crit == "max"): weight = (fVal - self.fVals[self.worstSpiderIndex]) / (self.fVals[self.bestSpiderIndex] - self.fVals[self.worstSpiderIndex])
-        else: weight = (self.fVals[self.worstSpiderIndex] - fVal) / (self.fVals[self.worstSpiderIndex] - self.fVals[self.bestSpiderIndex])
+        if(self.crit == "max"): weight = (fVal - self.fVals[self.worstSpiderIndexes[0]]) / (self.fVals[self.bestSpiderIndexes[0]] - self.fVals[self.worstSpiderIndexes[0]])
+        else: weight = (self.fVals[self.worstSpiderIndexes[0]] - fVal) / (self.fVals[self.worstSpiderIndexes[0]] - self.fVals[self.bestSpiderIndexes[0]])
 
         return weight, fVal
 
@@ -439,33 +437,28 @@ class SocialSpiderOptimization(object):
 
         while ( abs(self.fVals[self.bestSpiderIndexes[0]] - self.optimum) > self.tol ):
 
-            print("Generation " + str(self.genCount))
-            print("Updating Positions")
             self.updatePositions()
 
             try:
-                print("Calculating function values")
                 self.calculateFVals()
 
             except MaxFESReached:
-                print("MaxFESReached")
                 break
 
-            print("Recalculating weights")
             self.calculateWeights()
 
             try:
-                print("Mating")
                 self.mating()
 
             except MaxFESReached:
-                print("MaxFESReached")
                 break
             # note that self.mating already updates the spiders' weights after the insertion of new spiders
 
             metrics = self.getFitnessMetrics()
 
             self.genCount += 1
+
+            print(metrics["error"])
 
             generations.append(self.genCount)
             FESCount.append(self.FES)
@@ -485,23 +478,20 @@ class SocialSpiderOptimization(object):
                 "worstPoints": worstPoints,
                 "avgFits": avgFits}
 
-            print( "Optimum: " + str(metrics["bestVal"]) )
-            print( "Error: " + str( metrics["error"] ) )
-            print()
-
 if __name__ == '__main__':
 
     # Test of the PSO's performance over CEC2005's F1 (shifted sphere)
 
     import time
     from optproblems import cec2005
+    np.seterr("raise") # any calculation error immediately stops the execution
 
     bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
 
     start = time.time()
 
     # Initialization
-    SSO = SocialSpiderOptimization(cec2005.F1(10), bounds, popSize=30, PF=0.7)
+    SSO = SocialSpiderOptimization(cec2005.F2(10), bounds, popSize=30, PF=0.7)
     SSO.execute()
     results = SSO.results
 
