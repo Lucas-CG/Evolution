@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import time
 
 #IMPORTANT CHANGE: USED LOG1P FOR DISTANCE (DISTANCES ARE TOO LARGE!)
 
@@ -141,7 +142,7 @@ class SocialSpiderOptimization(object):
                     self.worstSpiderIndexes = [ i ]
 
                 elif (self.fVals[i] == worstFVal):
-                    self.worstSpiderIndexeses.append(i)
+                    self.worstSpiderIndexes.append(i)
 
             else:
 
@@ -173,7 +174,9 @@ class SocialSpiderOptimization(object):
 
     def distance(self, a, b):
         """Calculates the Euclidean distance between two spiders whose indexes are a and b."""
-        return np.log1p(np.linalg.norm( self.spiders[a] - self.spiders[b] ))
+        # return np.log1p(np.linalg.norm( self.spiders[a] - self.spiders[b] ))
+        return np.log10(1 + np.linalg.norm( self.spiders[a] - self.spiders[b] ))
+        # return np.linalg.norm( self.spiders[a] - self.spiders[b] )/10
 
     def vibc(self, i):
         """Calculates the Vibc vibrations perceived by spider [i] as a result of spider [c]. Returns the result and c's index.
@@ -193,7 +196,7 @@ class SocialSpiderOptimization(object):
                 minDistance = distance
 
         if(chosen != -1): # found a spider with this criteria.
-            vib = self.weights[chosen] * np.exp( -np.power( minDistance, 2 ) )
+            vib = self.weights[chosen] * math.exp( -np.power( minDistance, 2 ) )
         # if there wasn't any, vib is 0
 
         return vib, chosen
@@ -203,7 +206,7 @@ class SocialSpiderOptimization(object):
 
         dist = self.distance(i, self.bestSpiderIndexes[0])
 
-        return self.weights[self.bestSpiderIndexes[0]] * np.exp( -np.power( dist, 2 ) )
+        return self.weights[self.bestSpiderIndexes[0]] * math.exp( -np.power( dist, 2 ) )
 
     def vibf(self, i):
         """Calculates the Vibf vibrations perceived by spider [i] as a result of spider [f]. Returns the result and f's index.
@@ -221,7 +224,7 @@ class SocialSpiderOptimization(object):
                 chosen = f
                 minDistance = distance
 
-        return self.weights[chosen] * np.exp( -np.power( minDistance, 2 ) ), chosen
+        return self.weights[chosen] * math.exp( -np.power( minDistance, 2 ) ), chosen
 
     def checkNCorrectBounds(self, spider):
         """Bound checking and correcting function for the genes. If bounds are trespassed,
@@ -265,7 +268,7 @@ class SocialSpiderOptimization(object):
 
                 newSpider = self.spiders[f] - alpha * vibcVal * (self.spiders[c] - self.spiders[f]) - beta * self.vibb(f) * ( self.spiders[self.bestSpiderIndexes[0]] - self.spiders[f] ) + delta * (rand - 0.5)
 
-            self.spiders[f] = self.checkNCorrectBounds(newSpider)
+            if(f != self.bestSpiderIndexes[0]): self.spiders[f] = self.checkNCorrectBounds(newSpider)
 
         # Discovering dominant and non-dominant males
         self.isDominant = [False for i in range(self.numMales)] # flags for identifying dominants. Resetted at each iteration.
@@ -294,14 +297,14 @@ class SocialSpiderOptimization(object):
                 vibfVal, f = self.vibf(self.numFemales + m) # value and index
                 newSpider = self.spiders[self.numFemales + m] + alpha * vibfVal * (self.spiders[f] - self.spiders[self.numFemales + m]) + delta * (rand - 0.5)
 
-                self.spiders[self.numFemales + m] = self.checkNCorrectBounds(newSpider)
+                if(self.numFemales + m != self.bestSpiderIndexes[0]): self.spiders[self.numFemales + m] = self.checkNCorrectBounds(newSpider)
 
             else:
 
                 alpha = np.random.uniform(0, 1)
                 newSpider = self.spiders[self.numFemales + m] + alpha * maleWeightedMean
 
-                self.spiders[self.numFemales + m] = self.checkNCorrectBounds(newSpider)
+                if(self.numFemales + m != self.bestSpiderIndexes[0]): self.spiders[self.numFemales + m] = self.checkNCorrectBounds(newSpider)
 
     def mating(self):
 
@@ -485,14 +488,15 @@ if __name__ == '__main__':
 
     import time
     from optproblems import cec2005
-    np.seterr("raise") # any calculation error immediately stops the execution
+    # np.seterr("raise") # any calculation error immediately stops the execution
+    dims = 30
 
-    bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
+    bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ] # 10-dimensional sphere (optimum: 0)
 
     start = time.time()
 
     # Initialization
-    SSO = SocialSpiderOptimization(cec2005.F4(10), bounds, popSize=50, PF=0.7)
+    SSO = SocialSpiderOptimization(cec2005.F1(dims), bounds, popSize=50, PF=0.7)
     SSO.execute()
     results = SSO.results
 
