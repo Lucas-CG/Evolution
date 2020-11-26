@@ -176,7 +176,7 @@ class SocialSpiderOptimization(object):
         """Calculates the Euclidean distance between two spiders whose indexes are a and b."""
         # return np.log1p(np.linalg.norm( self.spiders[a] - self.spiders[b] ))
         return np.log10(1 + np.linalg.norm( self.spiders[a] - self.spiders[b] ))
-        # return np.linalg.norm( self.spiders[a] - self.spiders[b] )/10
+        # return np.linalg.norm( self.spiders[a] - self.spiders[b] )/5
 
     def vibc(self, i):
         """Calculates the Vibc vibrations perceived by spider [i] as a result of spider [c]. Returns the result and c's index.
@@ -489,14 +489,14 @@ if __name__ == '__main__':
     import time
     from optproblems import cec2005
     # np.seterr("raise") # any calculation error immediately stops the execution
-    dims = 30
+    dims = 10
 
     bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ] # 10-dimensional sphere (optimum: 0)
 
     start = time.time()
 
     # Initialization
-    SSO = SocialSpiderOptimization(cec2005.F1(dims), bounds, popSize=50, PF=0.7)
+    SSO = SocialSpiderOptimization(cec2005.F1(dims), bounds, popSize=30, PF=0.7)
     SSO.execute()
     results = SSO.results
 

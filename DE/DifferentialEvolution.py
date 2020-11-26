@@ -361,7 +361,7 @@ if __name__ == '__main__':
 
     # Initialization
     DE = DifferentialEvolution(cec2005.F1(10), bounds)
-    DE.setMutation(DE.classicMutation, ("rand", 1, 1)) # base, F, nDiffs
+    DE.setMutation(DE.classicMutation, ("rand", 0.5, 1)) # base, F, nDiffs
     DE.setCrossover(DE.classicCrossover, ("bin", 0.5)) # type, CR
     DE.execute()
     results = DE.results
