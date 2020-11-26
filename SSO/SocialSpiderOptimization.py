@@ -11,11 +11,13 @@ class MaxFESReached(Exception):
 class SocialSpiderOptimization(object):
     """Implements a real-valued Social Spider Optimization."""
 
-    def __init__(self, func, bounds, popSize=None, PF=0.7, crit="min", optimum=-450, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=None, PF=0.7, normalizeDistances=True, crit="min", optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
         - popSize: population size
+        - PF: probability of attraction (for females)
+        - normalizeDistances: divide all distances by the diameter (maximum possible distance), to avoid np.exp underflows.
         - crit: criterion ("min" or "max")
         - optimum: known optimum value for the objective function. Default is -450, for CEC functions.
         - maxFES: maximum number of fitness evaluations.
@@ -42,6 +44,7 @@ class SocialSpiderOptimization(object):
         if(maxFES): self.maxFES = maxFES
         else: self.maxFES = 10000 * self.dimensions
 
+        self.normalizeDistances = normalizeDistances
 
         # Control attributes
         self.spiders = []
@@ -64,6 +67,13 @@ class SocialSpiderOptimization(object):
 
         self.spiders = np.array(self.spiders) # result: matrix. Lines are individuals; columns are dimensions
         # first lines are females; last ones are males
+
+        self.diameter = 0 # greatest distance for the interval
+
+        if(self.normalizeDistances):
+            extreme0 = np.array(self.bounds[0])
+            extreme1 = np.array(self.bounds[1])
+            self.diameter = np.linalg.norm( extreme0 - extreme1 )
 
     def calculateFVals(self):
         """Calculates all spiders' objective function values. Also finds the worst and best spiders' indexes."""
@@ -174,9 +184,12 @@ class SocialSpiderOptimization(object):
 
     def distance(self, a, b):
         """Calculates the Euclidean distance between two spiders whose indexes are a and b."""
-        # return np.log1p(np.linalg.norm( self.spiders[a] - self.spiders[b] ))
-        return np.log10(1 + np.linalg.norm( self.spiders[a] - self.spiders[b] ))
-        # return np.linalg.norm( self.spiders[a] - self.spiders[b] )/5
+
+        if(self.normalizeDistances):
+            return 27 * np.linalg.norm( self.spiders[a] - self.spiders[b] )/self.diameter
+
+        else:
+            return np.log10(1 + np.linalg.norm( self.spiders[a] - self.spiders[b] ))
 
     def vibc(self, i):
         """Calculates the Vibc vibrations perceived by spider [i] as a result of spider [c]. Returns the result and c's index.
@@ -496,7 +509,9 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    SSO = SocialSpiderOptimization(cec2005.F1(dims), bounds, popSize=30, PF=0.7)
+    SSO = SocialSpiderOptimization(cec2005.F2(dims), bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=-450) # F5: -310 / others: -450
+    #compare normalizing and non-normalizing
+    #compare populations of 20, 30 and 50
     SSO.execute()
     results = SSO.results
 
