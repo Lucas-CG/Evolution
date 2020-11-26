@@ -1,30 +1,24 @@
-from AdaptiveGA import AdaptiveGA
+from SocialSpiderOptimization import SocialSpiderOptimization
 from optproblems import cec2005
-# import time
 
 if __name__ == '__main__':
 
-    dimensions = 10
-    func = cec2005.F1(dimensions)
-    bounds = [ [-100 for i in range(dimensions)], [100 for i in range(dimensions)] ]
-    # 10 dimensions; each dimension variable varies within [-100, +100]
+    from optproblems import cec2005
+    dims = 10
 
-    # start = time.time()
+    bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ] # 10-dimensional sphere (optimum: 0)
 
     # Initialization
-    GA = AdaptiveGA(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05) #F5 = -310
-
-    GA.setParentSelection(GA.tournamentSelection, (True,) )
-    GA.setCrossover(GA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
-    GA.setMutation(GA.adaptiveCreepMutation, (1,)) # prob
-    GA.setNewPopSelection(GA.genitor, None)
-    GA.execute()
-    results = GA.results
+    SSO = SocialSpiderOptimization(cec2005.F2(dims), bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=-450) # F5: -310 / others: -450
+    #compare normalizing and non-normalizing
+    #compare populations of 20, 30 and 50
+    SSO.execute()
+    results = SSO.results
 
     # Treating results
 
     error = results["errors"][-1]
-    success = results["errors"][-1] < GA.tol
+    success = results["errors"][-1] < SSO.tol
     generation = results["generations"][-1]
     FESCount = results["FESCounts"][-1]
 

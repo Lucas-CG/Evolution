@@ -475,8 +475,6 @@ class SocialSpiderOptimization(object):
 
             self.genCount += 1
 
-            print(metrics["error"])
-
             generations.append(self.genCount)
             FESCount.append(self.FES)
             errors.append(metrics["error"])
@@ -509,7 +507,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    SSO = SocialSpiderOptimization(cec2005.F2(dims), bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=-450) # F5: -310 / others: -450
+    SSO = SocialSpiderOptimization(cec2005.F1(dims), bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=-450) # F5: -310 / others: -450
     #compare normalizing and non-normalizing
     #compare populations of 20, 30 and 50
     SSO.execute()
