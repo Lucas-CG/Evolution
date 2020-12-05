@@ -421,8 +421,6 @@ class SocialSpiderOptimization(object):
 
         Execute after evaluating after using self.calculateFVals or after self.mating!"""
 
-        # it only fetches one point right now...
-
         avg = sum(self.fVals)/self.popSize
         bestVal = self.fVals[self.bestSpiderIndexes[0]]
         bestPoints = [ self.spiders[i] for i in self.bestSpiderIndexes ]
