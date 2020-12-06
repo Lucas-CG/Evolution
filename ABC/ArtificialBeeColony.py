@@ -2,6 +2,7 @@ import numpy as np
 import math
 import time
 from RouletteWheel import RouletteWheel
+import copy
 
 class MaxFESReached(Exception):
     """Exception used to interrupt the DE operation when the maximum number of fitness evaluations is reached."""
@@ -9,14 +10,14 @@ class MaxFESReached(Exception):
 
 class ArtificialBeeColony(object):
 
-    def __init__(self, func, bounds, popSize=None, workerOnlookerSplit=0.5, limit=10, numScouts=1, crit="min", optimum=-450, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=None, workerOnlookerSplit=0.5, limit=None, numScouts=1, crit="min", optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
         - popSize: population size
         - workerOnlookerSplit: proportion between workers and onlookers. Greater values, more workers.
         - limit: for how many generations does a bee keep trying to improve solutions inside a region before turning into a scout.
-        - scouts: how many scout bees are generated after the exhaustion of a "food source" at each generation.
+        - numScouts: how many scout bees are generated after the exhaustion of a "food source" at each generation.
         - crit: criterion ("min" or "max")
         - optimum: known optimum value for the objective function. Default is -450, for CEC functions.
         - maxFES: maximum number of fitness evaluations.
@@ -43,7 +44,6 @@ class ArtificialBeeColony(object):
         else: self.maxFES = 10000 * self.dimensions
 
         self.workerOnlookerSplit = workerOnlookerSplit
-        self.limit = limit
         self.numScouts = numScouts
 
         # Control attributes
@@ -51,6 +51,7 @@ class ArtificialBeeColony(object):
         self.patiences = []
         self.numWorkers = int(np.floor(self.popSize * self.workerOnlookerSplit))
         self.numOnlookers = self.popSize - self.numWorkers
+        self.limit = limit if limit else 0.6 * self.numWorkers * self.dimensions
         self.fVals = np.zeros(self.numWorkers)
         self.bestBeeIndexes = []
         self.worstBeeIndexes = []
@@ -72,13 +73,10 @@ class ArtificialBeeColony(object):
         self.calculateFVals()
 
     def randomIndividual(self):
-
         return np.random.uniform(self.bounds[0], self.bounds[1])
 
     def calculateFVals(self):
         """Calculates all bees' objective function values. Also finds the worst and best bees' indexes."""
-
-        # Fix: there is an index in common at the worst and best lists
 
         fVals = []
         bestFVal = np.inf if self.crit == "min" else -np.inf
@@ -179,17 +177,17 @@ class ArtificialBeeColony(object):
         return fVal
 
     def improveSolution(self, index):
+        """Improves a solution by modifying one random coordinate with a perturbation."""
 
-        candidate = self.workers[index]
+        candidate = np.copy(self.workers[index])
 
-        for i in range(self.dimensions):
+        i = np.random.randint(0, self.dimensions)
 
-            while True:
+        bee2Index = index
 
-                bee2Index = np.random.randint(0, self.numWorkers)
-                if bee2Index != index: break
+        while bee2Index == index: bee2Index = np.random.randint(0, self.numWorkers)
 
-            candidate[i] += np.random.uniform(-1, 1) * ( candidate[i] - self.workers[bee2Index][i] )
+        candidate[i] += np.random.uniform(-1, 1) * ( candidate[i] - self.workers[bee2Index][i] )
 
         candidate = self.checkNCorrectBounds(candidate)
         candidateFVal = self.calculateFVal(candidate)
@@ -198,7 +196,8 @@ class ArtificialBeeColony(object):
 
             if candidateFVal < self.fVals[index]:
 
-                self.workers[index] = candidate
+                self.workers[index] = np.copy(candidate)
+                self.fVals[index] = candidateFVal
                 self.patiences[index] = 0
 
             else:
@@ -208,11 +207,13 @@ class ArtificialBeeColony(object):
 
             if candidateFVal > self.fVals[index]:
 
-                self.workers[index] = candidate
+                self.workers[index] = np.copy(candidate)
+                self.fVals[index] = candidateFVal
                 self.patiences[index] = 0
 
             else:
                 self.patiences[index] += 1
+
 
     def doWorkers(self):
         """Worker bees operate, by trying to improve their solution ("food source")."""
@@ -237,11 +238,15 @@ class ArtificialBeeColony(object):
 
         while scoutCounter < self.numScouts and i < self.numWorkers:
 
-            if(self.patiences[i] > self.limit):
+            pats = self.patiences.tolist()
+            j = pats.index(max(pats)) # prioritizes the bee with the most iterations
 
-                self.makeScout(i)
+            if(self.patiences[j] > self.limit):
+
+                self.makeScout(j)
                 scoutCounter += 1
-                i += 1
+
+            i += 1
 
     def doOnlookers(self, method="roulette"):
         """Operate with the onlooker bees. They randomly choose a position to improve, with probabilities proportional to the fitness value."""
@@ -256,8 +261,6 @@ class ArtificialBeeColony(object):
                 weights.append(weight)
 
             else: weights.append(self.fVals[i])
-
-        # preparing roulette
 
         weights = np.array(weights)
 
@@ -329,47 +332,55 @@ class ArtificialBeeColony(object):
         worstPoints = [ metrics["worstPoints"] ]
         avgFits = [ metrics["avg"] ]
 
-        while ( abs(self.fVals[self.bestBeeIndexes[0]] - self.optimum) > self.tol ):
+        try:
 
-            try:
-                self.doWorkers()
+            while ( abs(self.fVals[self.bestBeeIndexes[0]] - self.optimum) > self.tol ):
 
-            except MaxFESReached:
-                break
+                try:
+                    self.doWorkers()
 
-            try:
-                self.doOnlookers()
+                except MaxFESReached:
+                    break
 
-            except MaxFESReached:
-                break
+                try:
+                    self.doOnlookers()
 
-            try:
-                self.createScouts()
+                except MaxFESReached:
+                    break
 
-            except MaxFESReached:
-                break
+                try:
+                    self.createScouts()
 
-            metrics = self.getFitnessMetrics()
+                except MaxFESReached:
+                    break
 
-            self.genCount += 1
+                self.updateBestWorstBees()
+                metrics = self.getFitnessMetrics()
 
-            generations.append(self.genCount)
-            FESCount.append(self.FES)
-            errors.append(metrics["error"])
-            bestFits.append(metrics["bestVal"])
-            bestPoints.append(metrics["bestPoints"])
-            worstFits.append(metrics["worstVal"])
-            worstPoints.append(metrics["worstPoints"])
-            avgFits.append(metrics["avg"])
+                self.genCount += 1
 
-            self.results = {"generations": generations,
-                "FESCounts": FESCount,
-                "errors": errors,
-                "bestFits": bestFits,
-                "bestPoints": bestPoints,
-                "worstFits": worstFits,
-                "worstPoints": worstPoints,
-                "avgFits": avgFits}
+                generations.append(self.genCount)
+                FESCount.append(self.FES)
+                errors.append(metrics["error"])
+                bestFits.append(metrics["bestVal"])
+                bestPoints.append(metrics["bestPoints"])
+                worstFits.append(metrics["worstVal"])
+                worstPoints.append(metrics["worstPoints"])
+                avgFits.append(metrics["avg"])
+
+                print(metrics["error"])
+
+                self.results = {"generations": generations,
+                    "FESCounts": FESCount,
+                    "errors": errors,
+                    "bestFits": bestFits,
+                    "bestPoints": bestPoints,
+                    "worstFits": worstFits,
+                    "worstPoints": worstPoints,
+                    "avgFits": avgFits}
+
+        except KeyboardInterrupt:
+            return
 
 
 if __name__ == '__main__':
@@ -386,7 +397,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    ABC = ArtificialBeeColony(cec2005.F1(dims), bounds, popSize=100, workerOnlookerSplit=0.5, limit=10, numScouts=1, optimum=-450) # F5: -310 / others: -450
+    ABC = ArtificialBeeColony(cec2005.F1(dims), bounds, popSize=50, workerOnlookerSplit=0.5, limit=None, numScouts=1, optimum=-450) # F5: -310 / others: -450
     #compare normalizing and non-normalizing
     #compare populations of 20, 30 and 50
     ABC.execute()

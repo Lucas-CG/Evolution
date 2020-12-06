@@ -107,43 +107,48 @@ class RegPSO(object):
         minPoints = [ metrics["bottomPoints"] ]
         avgFits = [ metrics["avg"] ]
 
-        while ( abs(self.bestSoFar - self.optimum) > self.tol ):
+        try:
 
-            self.calculateNewSpeeds()
-            self.updatePositions()
+            while ( abs(self.bestSoFar - self.optimum) > self.tol ):
 
-            try:
-                self.calculateFitnessPop()
+                self.calculateNewSpeeds()
+                self.updatePositions()
 
-            except MaxFESReached:
-                break
+                try:
+                    self.calculateFitnessPop()
 
-            metrics = self.getFitnessMetrics()
+                except MaxFESReached:
+                    break
 
-            self.genCount += 1
+                metrics = self.getFitnessMetrics()
 
-            generations.append(self.genCount)
-            FESCount.append(self.FES)
-            errors.append(metrics["error"])
-            maxFits.append(metrics["top"])
-            maxPoints.append(metrics["topPoints"])
-            minFits.append(metrics["bottom"])
-            minPoints.append(metrics["bottomPoints"])
-            avgFits.append(metrics["avg"])
+                self.genCount += 1
 
-            self.results = {"generations": generations,
-                "FESCounts": FESCount,
-                "errors": errors,
-                "maxFits": maxFits,
-                "maxPoints": maxPoints,
-                "minFits": minFits,
-                "minPoints": minPoints,
-                "avgFits": avgFits}
+                generations.append(self.genCount)
+                FESCount.append(self.FES)
+                errors.append(metrics["error"])
+                maxFits.append(metrics["top"])
+                maxPoints.append(metrics["topPoints"])
+                minFits.append(metrics["bottom"])
+                minPoints.append(metrics["bottomPoints"])
+                avgFits.append(metrics["avg"])
 
-            self.calculateSwarmRadius()
+                self.results = {"generations": generations,
+                    "FESCounts": FESCount,
+                    "errors": errors,
+                    "maxFits": maxFits,
+                    "maxPoints": maxPoints,
+                    "minFits": minFits,
+                    "minPoints": minPoints,
+                    "avgFits": avgFits}
 
-            if self.swarmRadius < self.prematureThreshold:
-                self.regroup()
+                self.calculateSwarmRadius()
+
+                if self.swarmRadius < self.prematureThreshold:
+                    self.regroup()
+
+        except KeyboardInterrupt:
+            return
 
     def calculateFitnessPop(self):
         """Calculates the fitness values for the entire population, and updates personal and group best values."""

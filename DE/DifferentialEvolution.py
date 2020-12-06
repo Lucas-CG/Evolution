@@ -86,48 +86,53 @@ class DifferentialEvolution(object):
         minPoints = [ metrics["bottomPoints"] ]
         avgFits = [ metrics["avg"] ]
 
-        while ( abs(self.bestSoFar - self.optimum) > self.tol ):
+        try:
 
-            try:
+            while ( abs(self.bestSoFar - self.optimum) > self.tol ):
 
-                if(self.mutationParams): self.mutation(*self.mutationParams) # tem parâmetro definido?
-                else: self.mutation() # se não tiver, roda sem.
+                try:
 
-            except MaxFESReached:
-                break
+                    if(self.mutationParams): self.mutation(*self.mutationParams) # tem parâmetro definido?
+                    else: self.mutation() # se não tiver, roda sem.
 
-            try:
+                except MaxFESReached:
+                    break
 
-                if(self.crossoverParams): self.crossover(*self.crossoverParams)
-                else: self.crossover()
+                try:
 
-            except MaxFESReached:
-                break
-                #Exit the loop, going to the result saving part
+                    if(self.crossoverParams): self.crossover(*self.crossoverParams)
+                    else: self.crossover()
 
-            self.selection()
+                except MaxFESReached:
+                    break
+                    #Exit the loop, going to the result saving part
 
-            metrics = self.getFitnessMetrics()
+                self.selection()
 
-            self.genCount += 1
+                metrics = self.getFitnessMetrics()
 
-            generations.append(self.genCount)
-            FESCount.append(self.FES)
-            errors.append(metrics["error"])
-            maxFits.append(metrics["top"])
-            maxPoints.append(metrics["topPoints"])
-            minFits.append(metrics["bottom"])
-            minPoints.append(metrics["bottomPoints"])
-            avgFits.append(metrics["avg"])
+                self.genCount += 1
 
-            self.results = {"generations": generations,
-                "FESCounts": FESCount,
-                "errors": errors,
-                "maxFits": maxFits,
-                "maxPoints": maxPoints,
-                "minFits": minFits,
-                "minPoints": minPoints,
-                "avgFits": avgFits}
+                generations.append(self.genCount)
+                FESCount.append(self.FES)
+                errors.append(metrics["error"])
+                maxFits.append(metrics["top"])
+                maxPoints.append(metrics["topPoints"])
+                minFits.append(metrics["bottom"])
+                minPoints.append(metrics["bottomPoints"])
+                avgFits.append(metrics["avg"])
+
+                self.results = {"generations": generations,
+                    "FESCounts": FESCount,
+                    "errors": errors,
+                    "maxFits": maxFits,
+                    "maxPoints": maxPoints,
+                    "minFits": minFits,
+                    "minPoints": minPoints,
+                    "avgFits": avgFits}
+
+        except KeyboardInterrupt:
+            return
 
     def isInBounds(self, ind):
         """Bound checking function for the genes. Used in the mutation procedure."""

@@ -78,8 +78,6 @@ class SocialSpiderOptimization(object):
     def calculateFVals(self):
         """Calculates all spiders' objective function values. Also finds the worst and best spiders' indexes."""
 
-        # Fix: there is an index in common at the worst and best lists
-
         fVals = []
         bestFVal = np.inf if self.crit == "min" else -np.inf
         worstFVal = -np.inf if self.crit == "min" else np.inf
@@ -243,7 +241,7 @@ class SocialSpiderOptimization(object):
         """Bound checking and correcting function for the genes. If bounds are trespassed,
         the spider is truncated."""
 
-        newSpider = spider[:]
+        newSpider = np.copy(spider)
 
         for i in range( len(newSpider) ):
 
@@ -450,46 +448,53 @@ class SocialSpiderOptimization(object):
 
         self.calculateWeights()
 
-        while ( abs(self.fVals[self.bestSpiderIndexes[0]] - self.optimum) > self.tol ):
+        try:
 
-            self.updatePositions()
+            while ( abs(self.fVals[self.bestSpiderIndexes[0]] - self.optimum) > self.tol ):
 
-            try:
-                self.calculateFVals()
+                self.updatePositions()
 
-            except MaxFESReached:
-                break
+                try:
+                    self.calculateFVals()
 
-            self.calculateWeights()
+                except MaxFESReached:
+                    break
 
-            try:
-                self.mating()
+                self.calculateWeights()
 
-            except MaxFESReached:
-                break
-            # note that self.mating already updates the spiders' weights after the insertion of new spiders
+                try:
+                    self.mating()
 
-            metrics = self.getFitnessMetrics()
+                except MaxFESReached:
+                    break
+                # note that self.mating already updates the spiders' weights after the insertion of new spiders
 
-            self.genCount += 1
+                metrics = self.getFitnessMetrics()
 
-            generations.append(self.genCount)
-            FESCount.append(self.FES)
-            errors.append(metrics["error"])
-            bestFits.append(metrics["bestVal"])
-            bestPoints.append(metrics["bestPoints"])
-            worstFits.append(metrics["worstVal"])
-            worstPoints.append(metrics["worstPoints"])
-            avgFits.append(metrics["avg"])
+                self.genCount += 1
 
-            self.results = {"generations": generations,
-                "FESCounts": FESCount,
-                "errors": errors,
-                "bestFits": bestFits,
-                "bestPoints": bestPoints,
-                "worstFits": worstFits,
-                "worstPoints": worstPoints,
-                "avgFits": avgFits}
+                generations.append(self.genCount)
+                FESCount.append(self.FES)
+                errors.append(metrics["error"])
+                bestFits.append(metrics["bestVal"])
+                bestPoints.append(metrics["bestPoints"])
+                worstFits.append(metrics["worstVal"])
+                worstPoints.append(metrics["worstPoints"])
+                avgFits.append(metrics["avg"])
+
+                self.results = {"generations": generations,
+                    "FESCounts": FESCount,
+                    "errors": errors,
+                    "bestFits": bestFits,
+                    "bestPoints": bestPoints,
+                    "worstFits": worstFits,
+                    "worstPoints": worstPoints,
+                    "avgFits": avgFits}
+
+                print(metrics["error"])
+
+        except KeyboardInterrupt:
+            return
 
 if __name__ == '__main__':
 

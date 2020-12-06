@@ -105,53 +105,58 @@ class GeneticAlgorithm(object):
         minPoints = [ metrics["bottomPoints"] ]
         avgFits = [ metrics["avg"] ]
 
-        while ( abs(self.bestSoFar - self.optimum) > self.tol ):
+        try:
 
-            self.getElite() # gets the best values if self.eliteSize > 0; does nothing otherwise
+            while ( abs(self.bestSoFar - self.optimum) > self.tol ):
 
-            if(self.parentSelectionParams): self.parentSelection(*self.parentSelectionParams) # tem parâmetro definido?
-            else: self.parentSelection() # se não tiver, roda sem.
+                self.getElite() # gets the best values if self.eliteSize > 0; does nothing otherwise
 
-            try:
-                if(self.crossoverParams): self.crossover(*self.crossoverParams)
-                else: self.crossover()
+                if(self.parentSelectionParams): self.parentSelection(*self.parentSelectionParams) # tem parâmetro definido?
+                else: self.parentSelection() # se não tiver, roda sem.
 
-            except MaxFESReached:
-                break
-                #Exit the loop, going to the result saving part
+                try:
+                    if(self.crossoverParams): self.crossover(*self.crossoverParams)
+                    else: self.crossover()
 
-            try:
-                for index in range( len(self.children) ):
-                    if(self.mutationParams): self.mutation(index, *self.mutationParams)
-                    else: self.mutation(index)
+                except MaxFESReached:
+                    break
+                    #Exit the loop, going to the result saving part
 
-            except MaxFESReached:
-                break
+                try:
+                    for index in range( len(self.children) ):
+                        if(self.mutationParams): self.mutation(index, *self.mutationParams)
+                        else: self.mutation(index)
 
-            if(self.newPopSelectionParams): self.newPopSelection(*self.newPopSelectionParams)
-            else: self.newPopSelection()
+                except MaxFESReached:
+                    break
 
-            metrics = self.getFitnessMetrics()
+                if(self.newPopSelectionParams): self.newPopSelection(*self.newPopSelectionParams)
+                else: self.newPopSelection()
 
-            self.genCount += 1
+                metrics = self.getFitnessMetrics()
 
-            generations.append(self.genCount)
-            FESCount.append(self.FES)
-            errors.append(metrics["error"])
-            maxFits.append(metrics["top"])
-            maxPoints.append(metrics["topPoints"])
-            minFits.append(metrics["bottom"])
-            minPoints.append(metrics["bottomPoints"])
-            avgFits.append(metrics["avg"])
+                self.genCount += 1
 
-            self.results = {"generations": generations,
-                "FESCounts": FESCount,
-                "errors": errors,
-                "maxFits": maxFits,
-                "maxPoints": maxPoints,
-                "minFits": minFits,
-                "minPoints": minPoints,
-                "avgFits": avgFits}
+                generations.append(self.genCount)
+                FESCount.append(self.FES)
+                errors.append(metrics["error"])
+                maxFits.append(metrics["top"])
+                maxPoints.append(metrics["topPoints"])
+                minFits.append(metrics["bottom"])
+                minPoints.append(metrics["bottomPoints"])
+                avgFits.append(metrics["avg"])
+
+                self.results = {"generations": generations,
+                    "FESCounts": FESCount,
+                    "errors": errors,
+                    "maxFits": maxFits,
+                    "maxPoints": maxPoints,
+                    "minFits": minFits,
+                    "minPoints": minPoints,
+                    "avgFits": avgFits}
+
+        except KeyboardInterrupt:
+            return
 
     def calculateFitnessPop(self):
         """Calculates the fitness values for the entire population."""
