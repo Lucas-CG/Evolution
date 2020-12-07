@@ -5,7 +5,7 @@ from optproblems import cec2005
 if __name__ == '__main__':
 
     dimensions = 10
-    func = cec2005.F1(dimensions)
+    func = cec2005.F2(dimensions)
     bounds = [ [-100 for i in range(dimensions)], [100 for i in range(dimensions)] ]
     # 10 dimensions; each dimension variable varies within [-100, +100]
 
@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # Treating results
 
     error = results["errors"][-1]
-    success = results["errors"][-1] < DE.tol
+    success = results["errors"][-1] <= DE.tol
     generation = results["generations"][-1]
     FESCount = results["FESCounts"][-1]
 

@@ -19,7 +19,7 @@ if __name__ == '__main__':
     # Treating results
 
     error = results["errors"][-1]
-    success = results["errors"][-1] < PSO.tol
+    success = results["errors"][-1] <= PSO.tol
     generation = results["generations"][-1]
     FESCount = results["FESCounts"][-1]
 
