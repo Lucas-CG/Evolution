@@ -8,12 +8,10 @@ if __name__ == '__main__':
 
     dims = 10
     bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ]
-    # functions = [ cec2005.F1(dims), cec2005.F2(dims), cec2005.F3(dims), cec2005.F4(dims), cec2005.F5(dims)]
-    functions = [ cec2005.F1(dims) ]
+    functions = [ cec2005.F1(dims), cec2005.F2(dims), cec2005.F3(dims), cec2005.F4(dims), cec2005.F5(dims)]
     optimums = [-450, -450, -450, -450, -310]
     FESThresholds = [0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
-    # numRuns = 25
-    numRuns = 1
+    numRuns = 25
 
 
     # Creating result path
@@ -68,7 +66,7 @@ if __name__ == '__main__':
 
         for j in range(numRuns):
 
-            ACO = AntColonyOptimization(functions[i], bounds, optimum=optimums[i]) # F5: -310 / others: -450
+            ACO = AntColonyOptimization(functions[i], bounds, numAnts=3, optimum=optimums[i]) # F5: -310 / others: -450
             ACO.execute()
             results = ACO.results
 
@@ -81,35 +79,36 @@ if __name__ == '__main__':
             # getting errors for different FES values
 
             currentFES = 0
-            currentThresholdIndex = 0
             FESThresholdErrors = [] # errors for each FES multiplier
 
-            for k in range( len( results["FESCounts"] ) ):
+            for k in range(len(FESThresholds)):
 
-                currentFES = results["FESCounts"][k]
+                l = 0
+                endReached = False
 
-                # FES value coincides with the threshold
-                if(currentFES == FESThresholds[currentThresholdIndex] * ACO.maxFES):
-                    FESThresholdErrors.append(results["errors"][k])
-                    print(currentFES, FESThresholds[currentThresholdIndex] * ACO.maxFES, results["errors"][k])
-                    print(FESThresholdErrors)
+                for m in range ( l, len( results["FESCounts"] ) ):
 
-                # last FES count was below the threshold and the current one has passed it
-                # add the result for the last FES count
-                elif(currentFES > FESThresholds[currentThresholdIndex] * ACO.maxFES):
-                    FESThresholdErrors.append(results["errors"][k-1])
-                    print(currentFES, FESThresholds[currentThresholdIndex] * ACO.maxFES, results["errors"][k])
-                    print(FESThresholdErrors)
+                    currentFES = results["FESCounts"][m]
 
-                elif ( k == len( results["FESCounts"] ) - 1 ):
-                    FESThresholdErrors.append(results["errors"][k])
-                    print(currentFES, FESThresholds[currentThresholdIndex] * ACO.maxFES, results["errors"][k])
-                    print(FESThresholdErrors)
+                    # FES value coincides with the threshold or has surpassed it
+                    if(currentFES >= FESThresholds[k] * ACO.maxFES):
+                        print(currentFES, FESThresholds[k] * ACO.maxFES)
+                        FESThresholdErrors.append(results["errors"][m])
+                        l = k + 1
+                        break
 
-                currentThresholdIndex += 1
+                    elif ( m == len( results["FESCounts"] ) - 1 ):
+                        print(currentFES, FESThresholds[k] * ACO.maxFES)
+                        FESThresholdErrors.append(results["errors"][m])
+                        l = k + 1
+                        endReached = True
+                        break
+
+                if(endReached): break
 
 
             FESResults.append(FESThresholdErrors) # each line is an execution
+            print(FESThresholdErrors)
 
         # End of the 25 runs. Write the results to the table and plot files.
 
