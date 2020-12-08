@@ -1,7 +1,8 @@
 import numpy as np
 import math
 import time
-from RouletteWheel import RouletteWheel
+if(__name__ == '__main__'): from utilities.RouletteWheel import RouletteWheel
+else: from .utilities.RouletteWheel import RouletteWheel
 
 class MaxFESReached(Exception):
     """Exception used to interrupt the DE operation when the maximum number of fitness evaluations is reached."""
