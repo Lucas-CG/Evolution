@@ -275,7 +275,7 @@ class ArtificialBeeColony(object):
         """Bound checking and correcting function for the decision variables. If bounds are trespassed,
         the bee is truncated."""
 
-        newBee = bee[:]
+        newBee = np.copy(bee)
 
         for i in range( len(newBee) ):
 

@@ -90,7 +90,7 @@ class AntColonyOptimization(object):
 
         self.archiveFVals = np.array(fVals)
 
-    def getFirst(ind):
+    def getFirst(self, ind):
         return ind[0]
 
     def rankArchive(self): # after individual updates
@@ -104,8 +104,8 @@ class AntColonyOptimization(object):
 
         valsAndOrders = [ (self.archiveFVals[i], i) for i in range(self.archiveSize) ]
 
-        if(self.crit == "min"): valsAndOrders.sort(key=getFirst) # crescent order (min)
-        else: valsAndOrders.sort(key=getFirst, reverse=True) # decrescent order (max)
+        if(self.crit == "min"): valsAndOrders.sort(key=self.getFirst) # crescent order (min)
+        else: valsAndOrders.sort(key=self.getFirst, reverse=True) # decrescent order (max)
         # Will return a sorted list. First item of each element is the objective
         # function's value; the second one is the original index.
 
@@ -114,14 +114,14 @@ class AntColonyOptimization(object):
 
         for i in range(self.archiveSize):
 
-            if (self.valsAndOrders[i][0] == bestFVal):
+            if (valsAndOrders[i][0] == bestFVal):
                 self.bestSolutionIndexes.append(i)
 
             else: break
 
         for i in reversed( range(self.archiveSize) ):
 
-            if (self.valsAndOrders[i][0] == worstFVal):
+            if (valsAndOrders[i][0] == worstFVal):
                 self.worstSolutionIndexes.append(i)
 
             else: break
@@ -134,7 +134,7 @@ class AntColonyOptimization(object):
         """Calculates the weight of a solution of the archive. Supposes that the archive is already sorted and ranked."""
 
         return ( 1 / ( self.searchLocality * self.archiveSize * np.sqrt(2 * np.pi) ) ) * \
-                np.exp( -( (rank - 1) ** 2 ) / )
+                np.exp( -( (rank - 1) ** 2 ) / 2 * self.searchLocality**2 * self.archiveSize**2 )
 
     def calculateArchiveWeights(self):
         """Calculates the weights of the entire archive. Required for moving the ants."""
@@ -146,7 +146,6 @@ class AntColonyOptimization(object):
         """Calculates the standard deviation of the normal distribution of an archive solution
         for a specified dimension."""
 
-        self.convergenceSpeed
         total = 0
 
         for e in range(self.archiveSize):
@@ -154,7 +153,7 @@ class AntColonyOptimization(object):
             if e == index: continue
             else: total += abs(self.archive[e][dimension] - self.archive[index][dimension])
 
-        return (convergenceSpeed * total) / (self.archiveSize - 1)
+        self.archiveStDevs[index][dimension] = (self.convergenceSpeed * total) / (self.archiveSize - 1)
 
     def moveAnts(self):
         """Moves the ants, considering the solutions in the archive. Supposes that the archive
@@ -169,12 +168,34 @@ class AntColonyOptimization(object):
             for j in range(self.dimensions):
 
                 # Calculates the st. dev. if it is not already calculated
-                if(self.archiveStDevs[chosenSolution][j] == -1): self.calculateStDev(chosenSolution, j)
+                if(self.archiveStDevs[chosenSolution][j] == -1.0): self.calculateStDev(chosenSolution, j)
 
                 # Samples this variable's value from a normal distribution.
                 # Mean: the chosen archive's solution value.
                 # Standard deviation: the calculated standard deviation for this archive solution and variable.
                 self.ants[i][j] = np.random.normal(loc=self.archive[chosenSolution][j], scale=self.archiveStDevs[chosenSolution][j])
+
+            self.ants[i] = self.checkNCorrectBounds(self.ants[i])
+
+    def checkNCorrectBounds(self, solution):
+        """Bound checking and correcting function for the decision variables. If bounds are trespassed,
+        the solution is truncated."""
+
+        newSolution = np.copy(solution)
+
+        for i in range( len(newSolution) ):
+
+            if(newSolution[i] < self.bounds[0][i]):
+                newSolution[i] = self.bounds[0][i]
+                # newSolution[i] = np.random.uniform(self.bounds[0][1], self.bounds[0][1])
+                # newSolution[i] = 0
+
+            if(newSolution[i] > self.bounds[1][i]):
+                newSolution[i] = self.bounds[1][i]
+                # newSolution[i] = np.random.uniform(self.bounds[0][1], self.bounds[0][1])
+                # newSolution[i] = 0
+
+        return newSolution
 
     def evaluateAnts(self):
         """Calculates the ants' objective function values."""
@@ -196,14 +217,14 @@ class AntColonyOptimization(object):
 
         valsAndOrders = [ (self.antFVals[i], i) for i in range(self.numAnts) ]
 
-        if(self.crit == "min"): valsAndOrders.sort(key=getFirst) # crescent order (min)
-        else: valsAndOrders.sort(key=getFirst, reverse=True) # decrescent order (max)
+        if(self.crit == "min"): valsAndOrders.sort(key=self.getFirst) # crescent order (min)
+        else: valsAndOrders.sort(key=self.getFirst, reverse=True) # decrescent order (max)
         # Will return a sorted list. First item of each element is the objective
         # function's value; the second one is the original index.
 
         self.antFVals = [ element[0] for element in valsAndOrders ]
 
-        self.ants = np.array( [ self.archive[element[1]] for element in valsAndOrders ] )
+        self.ants = np.array( [ self.ants[element[1]] for element in valsAndOrders ] )
 
     def replaceArchiveByAnts(self):
         """Replaces the worst archive solutions by the current iteration's ants, if they have found
@@ -290,7 +311,7 @@ class AntColonyOptimization(object):
 
         try:
 
-            while ( abs(self.fVals[self.bestSolutionIndexes[0]] - self.optimum) > self.tol ):
+            while ( abs(self.archiveFVals[self.bestSolutionIndexes[0]] - self.optimum) > self.tol ):
 
                 self.moveAnts()
 
@@ -322,8 +343,6 @@ class AntColonyOptimization(object):
                 worstPoints.append(metrics["worstPoints"])
                 avgFits.append(metrics["avg"])
 
-                print(metrics["error"])
-
                 self.results = {"generations": generations,
                     "FESCounts": FESCount,
                     "errors": errors,
@@ -350,7 +369,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    ACO = ArtificialBeeColony(cec2005.F1(dims), bounds, optimum=-450) # F5: -310 / others: -450
+    ACO = AntColonyOptimization(cec2005.F2(dims), bounds, optimum=-450) # F5: -310 / others: -450
     ACO.execute()
     results = ACO.results
 
