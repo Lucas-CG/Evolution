@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import time
+from RouletteWheel import RouletteWheel
 
 class MaxFESReached(Exception):
     """Exception used to interrupt the DE operation when the maximum number of fitness evaluations is reached."""
@@ -49,12 +50,12 @@ class AntColonyOptimization(object):
         self.searchLocality = searchLocality
 
         # Control attributes
-        self.ants = np.zeros(self.numAnts)
+        self.ants = np.zeros( shape=(self.numAnts, self.dimensions) )
+        self.antFVals = np.zeros(self.numAnts)
         self.archive = [] # the archive also stores the means for each gaussian distribution - solution's value for the variable in question
         self.archiveFVals = np.zeros(self.archiveSize)
         self.archiveWeights = np.zeros(self.archiveSize)
-        self.archiveStDevs = np.array( [ -1 for i in range(self.archiveSize) ] ) # -1 indicates "not calculated"
-        self.ranks = [i+1 for i in range self.archiveSize]
+        self.archiveStDevs = np.zeros( shape=(self.archiveSize, self.dimensions) ) - 1 # -1 indicates "not calculated"
         self.bestSolutionIndexes = []
         self.worstSolutionIndexes = []
         self.FES = 0 # function evaluations
@@ -68,6 +69,8 @@ class AntColonyOptimization(object):
 
         self.archive = np.array(self.archive) # result: matrix. Lines are individuals; columns are dimensions
         self.calculateArchiveFVals()
+        self.rankArchive()
+        self.calculateArchiveWeights()
 
     def randomSolution(self):
         return np.random.uniform(self.bounds[0], self.bounds[1])
@@ -86,7 +89,6 @@ class AntColonyOptimization(object):
             fVals.append(fVal)
 
         self.archiveFVals = np.array(fVals)
-        self.rankArchive()
 
     def getFirst(ind):
         return ind[0]
@@ -128,20 +130,21 @@ class AntColonyOptimization(object):
 
         self.archive = np.array( [ self.archive[element[1]] for element in valsAndOrders ] )
 
-    def calculateFVal(self, solution):
-
-        fVal = self.func(solution)
-        self.FES += 1
-        if self.FES == self.maxFES: raise MaxFESReached
-
-        return fVal
-
     def calculateWeight(self, rank):
+        """Calculates the weight of a solution of the archive. Supposes that the archive is already sorted and ranked."""
 
         return ( 1 / ( self.searchLocality * self.archiveSize * np.sqrt(2 * np.pi) ) ) * \
                 np.exp( -( (rank - 1) ** 2 ) / )
 
+    def calculateArchiveWeights(self):
+        """Calculates the weights of the entire archive. Required for moving the ants."""
+
+        for i in range(self.archiveSize): self.archiveWeights[i] = self.calculateWeight(i + 1)
+        # i + 1 because ranks start from 1
+
     def calculateStDev(self, index, dimension):
+        """Calculates the standard deviation of the normal distribution of an archive solution
+        for a specified dimension."""
 
         self.convergenceSpeed
         total = 0
@@ -152,3 +155,208 @@ class AntColonyOptimization(object):
             else: total += abs(self.archive[e][dimension] - self.archive[index][dimension])
 
         return (convergenceSpeed * total) / (self.archiveSize - 1)
+
+    def moveAnts(self):
+        """Moves the ants, considering the solutions in the archive. Supposes that the archive
+        is ranked by objective function values and that the weights are already calculated."""
+
+        roulette = RouletteWheel(self.archiveWeights)
+
+        for i in range(self.numAnts):
+
+            chosenSolution = roulette.draw()
+
+            for j in range(self.dimensions):
+
+                # Calculates the st. dev. if it is not already calculated
+                if(self.archiveStDevs[chosenSolution][j] == -1): self.calculateStDev(chosenSolution, j)
+
+                # Samples this variable's value from a normal distribution.
+                # Mean: the chosen archive's solution value.
+                # Standard deviation: the calculated standard deviation for this archive solution and variable.
+                self.ants[i][j] = np.random.normal(loc=self.archive[chosenSolution][j], scale=self.archiveStDevs[chosenSolution][j])
+
+    def evaluateAnts(self):
+        """Calculates the ants' objective function values."""
+
+        fVals = []
+
+        for i in range(self.numAnts):
+
+            fVal = self.func(self.ants[i])
+            self.FES += 1
+            if self.FES == self.maxFES: raise MaxFESReached
+
+            fVals.append(fVal)
+
+        self.antFVals = np.array(fVals)
+
+    def rankAnts(self):
+        """Orders the ants' found solutions in decrescent order of fitness (minimization: crescent order of obj. func.'s value)."""
+
+        valsAndOrders = [ (self.antFVals[i], i) for i in range(self.numAnts) ]
+
+        if(self.crit == "min"): valsAndOrders.sort(key=getFirst) # crescent order (min)
+        else: valsAndOrders.sort(key=getFirst, reverse=True) # decrescent order (max)
+        # Will return a sorted list. First item of each element is the objective
+        # function's value; the second one is the original index.
+
+        self.antFVals = [ element[0] for element in valsAndOrders ]
+
+        self.ants = np.array( [ self.archive[element[1]] for element in valsAndOrders ] )
+
+    def replaceArchiveByAnts(self):
+        """Replaces the worst archive solutions by the current iteration's ants, if they have found
+        better solutions."""
+
+        # The procedure keeps two counters, i and j, which respectively traverse the archive and the
+        # ant list in reverse order. This way, we iterate from the worst to the best solutions, since
+        # both lists are ranked, and do not lose solutions (which would happen if the lists were traversed in
+        # opposite directions).
+        # When we find an ant with a better solution than the current archive solution (given by i), we replace it by the ant.
+        # Replacing or not, the counter j moves, changing the ant. If there was a replacement, we go to the next ant
+        # to avoid repetitions. If there wasn't, we try a better ant candidate to replace the current archive solution.
+        # It is important to initialize j BEFORE the for loop (that iterates through the archive). Otherwise,
+        # j would be reinitialize and we would reevaluate ants, which might lead to the archive being full of
+        # repeated solutions. Also, in this case, there would be more replacements than ants.
+
+        j = self.numAnts - 1 # ant counter(reverse order)
+
+        for i in reversed( range(self.archiveSize) ):
+
+            while j >= 0:
+
+                if(self.crit == "min" and self.antFVals[j] < self.archiveFVals[i]):
+
+                    self.archive[i] = self.ants[j]
+                    self.archiveFVals[i] = self.antFVals[j]
+                    j -= 1
+                    break
+
+                elif(self.crit == "max" and self.antFVals[j] > self.archiveFVals[i]):
+
+                    self.archive[i] = self.ants[j]
+                    self.archiveFVals[i] = self.antFVals[j]
+                    j -= 1
+                    break
+
+                j -= 1
+
+            if (j < 0): break
+
+    def resetStDevs(self):
+        """Resets the archive's standard deviations. Required at the end of every iteration."""
+
+        self.archiveStDevs = np.zeros( shape=(self.archiveSize, self.dimensions) ) - 1 # -1 indicates "not calculated"
+
+    def getFitnessMetrics(self):
+
+        """Finds the mean, greater and lower fitness values for the population,
+        as well as the points with the greater and lower ones and the current error.
+        Returns a dict, whose keys are:
+        "avg" to average value
+        "bestVal" to best value
+        "bestPoints" to a list of points with the best value
+        "worstVal" to worst value
+        "worstPoints" to a list of points with the worst value
+        "error" for the current error (difference between the fitness and the optimum)
+
+        Execute only after evaluating and ranking the archive's solutions!"""
+
+        avg = sum(self.archiveFVals)/self.archiveSize
+        bestVal = self.archiveFVals[self.bestSolutionIndexes[0]]
+        bestPoints = [ self.archive[i] for i in self.bestSolutionIndexes ]
+        worstVal = self.archiveFVals[self.worstSolutionIndexes[0]]
+        worstPoints = [ self.archive[i] for i in self.worstSolutionIndexes ]
+
+        error = abs(bestVal - self.optimum)
+
+        return {"avg": avg, "bestVal": bestVal, "bestPoints": bestPoints, "worstVal": worstVal, "worstPoints": worstPoints, "error": error}
+
+    def execute(self):
+
+        metrics = self.getFitnessMetrics() # post-initialization: generation 0
+
+        # Arrays for collecting metrics
+
+        generations = [ self.genCount ]
+        FESCount = [ self.FES ]
+        errors = [ metrics["error"] ]
+        bestFits = [ metrics["bestVal"] ]
+        bestPoints = [ metrics["bestPoints"] ]
+        worstFits = [ metrics["worstVal"] ]
+        worstPoints = [ metrics["worstPoints"] ]
+        avgFits = [ metrics["avg"] ]
+
+        try:
+
+            while ( abs(self.fVals[self.bestSolutionIndexes[0]] - self.optimum) > self.tol ):
+
+                self.moveAnts()
+
+                try:
+                    self.evaluateAnts()
+
+                except MaxFESReached:
+                    break
+
+                self.rankAnts()
+                self.replaceArchiveByAnts()
+
+                # Resetting archive's st. devs., reranking it and reweighting it
+                self.resetStDevs()
+                self.rankArchive()
+                self.calculateArchiveWeights()
+
+                # Getting metrics based on present archive, and FES and generation counters.
+                metrics = self.getFitnessMetrics()
+
+                self.genCount += 1
+
+                generations.append(self.genCount)
+                FESCount.append(self.FES)
+                errors.append(metrics["error"])
+                bestFits.append(metrics["bestVal"])
+                bestPoints.append(metrics["bestPoints"])
+                worstFits.append(metrics["worstVal"])
+                worstPoints.append(metrics["worstPoints"])
+                avgFits.append(metrics["avg"])
+
+                print(metrics["error"])
+
+                self.results = {"generations": generations,
+                    "FESCounts": FESCount,
+                    "errors": errors,
+                    "bestFits": bestFits,
+                    "bestPoints": bestPoints,
+                    "worstFits": worstFits,
+                    "worstPoints": worstPoints,
+                    "avgFits": avgFits}
+
+        except KeyboardInterrupt:
+            return
+
+if __name__ == '__main__':
+
+    # Test of the ACO's performance over CEC2005's F1 (shifted sphere)
+
+    import time
+    from optproblems import cec2005
+    # np.seterr("raise") # any calculation error immediately stops the execution
+    dims = 10
+
+    bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ] # 10-dimensional sphere (optimum: 0)
+
+    start = time.time()
+
+    # Initialization
+    ACO = ArtificialBeeColony(cec2005.F1(dims), bounds, optimum=-450) # F5: -310 / others: -450
+    ACO.execute()
+    results = ACO.results
+
+    print("ACO: for criterion = " + ACO.crit + ", reached optimum of " + str(results["bestFits"][-1]) +
+    " (error of " + str(results["errors"][-1]) + ") (points " + str(results["bestPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
+
+    end = time.time()
+    print("time:" + str(end - start))

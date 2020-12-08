@@ -303,7 +303,7 @@ class ArtificialBeeColony(object):
         "worstPoints" to a list of points with the worst value
         "error" for the current error (difference between the fitness and the optimum)
 
-        Execute after evaluating after using self.calculateFVals and self.improveSolution!"""
+        Execute only after using self.calculateFVals and self.improveSolution!"""
 
         avg = sum(self.fVals)/self.numWorkers
         bestVal = self.fVals[self.bestBeeIndexes[0]]
@@ -367,8 +367,6 @@ class ArtificialBeeColony(object):
                 worstPoints.append(metrics["worstPoints"])
                 avgFits.append(metrics["avg"])
 
-                print(metrics["error"])
-
                 self.results = {"generations": generations,
                     "FESCounts": FESCount,
                     "errors": errors,
@@ -397,8 +395,6 @@ if __name__ == '__main__':
 
     # Initialization
     ABC = ArtificialBeeColony(cec2005.F1(dims), bounds, popSize=50, workerOnlookerSplit=0.5, limit=None, numScouts=1, optimum=-450) # F5: -310 / others: -450
-    #compare normalizing and non-normalizing
-    #compare populations of 20, 30 and 50
     ABC.execute()
     results = ABC.results
 
