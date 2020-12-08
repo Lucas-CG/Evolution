@@ -6,9 +6,6 @@ class MaxFESReached(Exception):
     """Exception used to interrupt the DE operation when the maximum number of fitness evaluations is reached."""
     pass
 
-def getSecond(ind):
-    return ind[1]
-
 class AntColonyOptimization(object):
 
     def __init__(self, func, bounds, popSize=None, crit="min", numAnts=2, archiveSize=50, convergenceSpeed=0.85, searchLocality=1e-04, optimum=-450, maxFES=None, tol=1e-08):
@@ -79,10 +76,6 @@ class AntColonyOptimization(object):
         """Calculates all archive solutions' objective function values. Also finds the worst and best solutions' indexes."""
 
         fVals = []
-        bestFVal = np.inf if self.crit == "min" else -np.inf
-        worstFVal = -np.inf if self.crit == "min" else np.inf
-        self.bestSolutionIndexes = []
-        self.worstSolutionIndexes = []
 
         for i in range(self.archiveSize):
 
@@ -92,81 +85,48 @@ class AntColonyOptimization(object):
 
             fVals.append(fVal)
 
-            if(self.crit == "min"):
-
-                if (fVal < bestFVal):
-                    bestFVal = fVal
-                    self.bestSolutionIndexes = [ i ]
-
-                elif (fVal == bestFVal):
-                    self.bestSolutionIndexes.append(i)
-
-                if (fVal > worstFVal):
-                    worstFVal = fVal
-                    self.worstSolutionIndexes = [ i ]
-
-                elif (fVal == worstFVal):
-                    self.worstSolutionIndexes.append(i)
-
-            else:
-
-                if (fVal > bestFVal):
-                    bestFVal = fVal
-                    self.bestSolutionIndexes = [ i ]
-
-                elif (fVal == bestFVal):
-                    self.bestSolutionIndexes.append(i)
-
-                if (fVal < worstFVal):
-                    worstFVal = fVal
-                    self.worstSolutionIndexes = [ i ]
-
-                elif (fVal == worstFVal):
-                    self.worstSolutionIndexes.append(i)
-
         self.archiveFVals = np.array(fVals)
+        self.rankArchive()
 
-    def updateBestWorstSolutions(self): # after individual updates
-        """Updates the best and worst solutions of the population."""
+    def getFirst(ind):
+        return ind[0]
+
+    def rankArchive(self): # after individual updates
+        """Orders the archive's solutions in decrescent order of fitness (minimization: crescent order of obj. func.'s value).
+         Also updates the best and worst solutions of the population."""
 
         bestFVal = np.inf if self.crit == "min" else -np.inf
         worstFVal = -np.inf if self.crit == "min" else np.inf
         self.bestSolutionIndexes = []
         self.worstSolutionIndexes = []
 
+        valsAndOrders = [ (self.archiveFVals[i], i) for i in range(self.archiveSize) ]
+
+        if(self.crit == "min"): valsAndOrders.sort(key=getFirst) # crescent order (min)
+        else: valsAndOrders.sort(key=getFirst, reverse=True) # decrescent order (max)
+        # Will return a sorted list. First item of each element is the objective
+        # function's value; the second one is the original index.
+
+        bestFVal = valsAndOrders[0][0]
+        worstFVal = valsAndOrders[-1][0]
+
         for i in range(self.archiveSize):
 
-            if(self.crit == "min"):
+            if (self.valsAndOrders[i][0] == bestFVal):
+                self.bestSolutionIndexes.append(i)
 
-                if (self.fVals[i] < bestFVal):
-                    bestFVal = self.fVals[i]
-                    self.bestSolutionIndexes = [ i ]
+            else: break
 
-                elif (self.fVals[i] == bestFVal):
-                    self.bestSolutionIndexes.append(i)
+        for i in reversed( range(self.archiveSize) ):
 
-                if (self.fVals[i] > worstFVal):
-                    worstFVal = self.fVals[i]
-                    self.worstSolutionIndexes = [ i ]
+            if (self.valsAndOrders[i][0] == worstFVal):
+                self.worstSolutionIndexes.append(i)
 
-                elif (self.fVals[i] == worstFVal):
-                    self.worstSolutionIndexes.append(i)
+            else: break
 
-            else:
+        self.archiveFVals = [ element[0] for element in valsAndOrders ]
 
-                if (self.fVals[i] > bestFVal):
-                    bestFVal = self.fVals[i]
-                    self.bestSolutionIndexes = [ i ]
-
-                elif (self.fVals[i] == bestFVal):
-                    self.bestSolutionIndexes.append(i)
-
-                if (self.fVals[i] < worstFVal):
-                    worstFVal = self.fVals[i]
-                    self.worstSolutionIndexes = [ i ]
-
-                elif (self.fVals[i] == worstFVal):
-                    self.worstSolutionIndexes.append(i)
+        self.archive = np.array( [ self.archive[element[1]] for element in valsAndOrders ] )
 
     def calculateFVal(self, solution):
 
