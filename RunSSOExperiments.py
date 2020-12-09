@@ -1,4 +1,4 @@
-from models import AntColonyOptimization
+from models import SocialSpiderOptimization
 from optproblems import cec2005
 from os import makedirs
 import statistics

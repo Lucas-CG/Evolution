@@ -67,7 +67,7 @@ if __name__ == '__main__':
         for j in range(numRuns):
 
             # Initialization
-            RPSO = RegPSO(functions[í], bounds, popSize=80, clerkK=False, inertiaDecay=True, optimum=optimums[i])
+            RPSO = RegPSO(functions[i], bounds, popSize=80, clerkK=False, inertiaDecay=True, optimum=optimums[i])
             RPSO.execute()
             results = RPSO.results
 
