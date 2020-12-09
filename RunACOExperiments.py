@@ -66,7 +66,7 @@ if __name__ == '__main__':
 
         for j in range(numRuns):
 
-            ACO = AntColonyOptimization(functions[i], bounds, numAnts=3, optimum=optimums[i]) # F5: -310 / others: -450
+            ACO = AntColonyOptimization(functions[i], bounds, numAnts=2, optimum=optimums[i]) # F5: -310 / others: -450
             ACO.execute()
             results = ACO.results
 

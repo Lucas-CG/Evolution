@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import csv
 from os import makedirs
+import numpy as np
 import locale
 
 colors = ["black", "royalblue", "brown", "gold", "lawngreen", "purple", "orangered", "deeppink"]
@@ -39,7 +40,7 @@ for algIndex in range(len(algorithms)):
 
             for row in reader:
                 meanFES[algorithms[algIndex]][str(funIndex)].append(float(row["FES_Multiplier"]))
-                meanErrors[algorithms[algIndex]][str(funIndex)].append(float(row["Average"]))
+                meanErrors[algorithms[algIndex]][str(funIndex)].append(np.log1p(float(row["Average"])))
 
         bestFES[algorithms[algIndex]][str(funIndex)] = []
         bestErrors[algorithms[algIndex]][str(funIndex)] = []
@@ -50,7 +51,7 @@ for algIndex in range(len(algorithms)):
 
             for row in reader:
                 bestFES[algorithms[algIndex]][str(funIndex)].append(float(row["FES_Multiplier"]))
-                bestErrors[algorithms[algIndex]][str(funIndex)].append(float(row["Error"]))
+                bestErrors[algorithms[algIndex]][str(funIndex)].append(np.log1p(float(row["Error"])))
 
 
         worstFES[algorithms[algIndex]][str(funIndex)] = []
@@ -62,7 +63,7 @@ for algIndex in range(len(algorithms)):
 
             for row in reader:
                 worstFES[algorithms[algIndex]][str(funIndex)].append(float(row["FES_Multiplier"]))
-                worstErrors[algorithms[algIndex]][str(funIndex)].append(float(row["Error"]))
+                worstErrors[algorithms[algIndex]][str(funIndex)].append(np.log1p(float(row["Error"])))
 
 
 locale.setlocale(locale.LC_NUMERIC, "de_DE.UTF-8") # Setting German locale for commas in decimals
@@ -85,7 +86,7 @@ for funIndex in range(1, 6):
         colors[algIndex], label=algorithms[algIndex])
     plt.title("F" + str(funIndex) + ": Desempenhos Médios")
     plt.xlabel("N * MaxFES")
-    plt.ylabel("Erro")
+    plt.ylabel("log(1 + erro)")
     plt.legend(loc='best')
     plt.savefig(pathName + "/F" + str(funIndex) + "_Mean.svg", bbox_inches='tight')
     plt.clf()
@@ -97,7 +98,7 @@ for funIndex in range(1, 6):
         colors[algIndex], label=algorithms[algIndex])
     plt.title("F" + str(funIndex) + ": Desempenhos das Melhores Rodadas")
     plt.xlabel("N * MaxFES")
-    plt.ylabel("Erro")
+    plt.ylabel("log(1 + erro)")
     plt.legend(loc='best')
     plt.savefig(pathName + "/F" + str(funIndex) + "_Best.svg", bbox_inches='tight')
     plt.clf()
@@ -109,7 +110,7 @@ for funIndex in range(1, 6):
         colors[algIndex], label=algorithms[algIndex])
     plt.title("F" + str(funIndex) + ": Desempenhos das Piores Rodadas")
     plt.xlabel("N * MaxFES")
-    plt.ylabel("Erro")
+    plt.ylabel("log(1 + erro)")
     plt.legend(loc='best')
     plt.savefig(pathName + "/F" + str(funIndex) + "_Worst.svg", bbox_inches='tight')
     plt.clf()
