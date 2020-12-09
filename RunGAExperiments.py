@@ -1,62 +1,180 @@
-from GeneticAlgorithm import GeneticAlgorithm
+from models import GeneticAlgorithm
 from optproblems import cec2005
+from os import makedirs
+import statistics
+import csv
 
 if __name__ == '__main__':
 
-    dimensions = 10
-    func = cec2005.F1(dimensions)
-    bounds = [ [-100 for i in range(dimensions)], [100 for i in range(dimensions)] ]
-    # 10 dimensions; each dimension variable varies within [-100, +100]
+    dims = 10
+    bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ]
+    functions = [ cec2005.F1(dims), cec2005.F2(dims), cec2005.F3(dims), cec2005.F4(dims), cec2005.F5(dims)]
+    optimums = [-450, -450, -450, -450, -310]
+    FESThresholds = [0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
+    numRuns = 25
 
-    # start = time.time()
 
-    # Initialization
-    GA = GeneticAlgorithm(func, bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=0, matingPoolSize=100, popSize=100) #F5 = -310
+    # Creating result path
+    pathName = "Results/GA"
+    makedirs(pathName, exist_ok=True)
 
-    GA.setParentSelection(GA.tournamentSelection, (True,) )
-    GA.setCrossover(GA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
-    GA.setMutation(GA.uniformMutation, (0.05, )) # prob, mean, sigma
-    GA.setNewPopSelection(GA.genitor, None)
-    GA.execute()
-    results = GA.results
+    # Initializing result files
 
-    # Treating results
+    tableFileName = pathName + "/GA_" + str(dims) + "D.csv"
 
-    error = results["errors"][-1]
-    success = results["errors"][-1] <= GA.tol
-    generation = results["generations"][-1]
-    FESCount = results["FESCounts"][-1]
+    with open(tableFileName, "w") as resultsFile:
 
-    # # getting errors for different FES values
-    #
-    # currentFES = 0
-    # currentThresholdIndex = 0
-    # FESThresholds = [0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
-    # FESThresholdErrors = [] # errors for each FES multiplier
-    # FESMultipliers = [] # x * MaxFES. Can be a threshold or a custom multiplier (end of execution before MaxFES)
-    #
-    # for k in range( len( results["FESCounts"] ) ):
-    #
-    #     currentFES = results["FESCounts"][k]
-    #
-    #     # FES value coincides with the threshold
-    #     if(currentFES == FESThresholds[currentThresholdIndex] * GA.maxFES):
-    #         FESThresholdErrors.append(error = results["errors"][k])
-    #         FESMultipliers.append(FESThresholds[currentThresholdIndex])
-    #         currentThresholdIndex += 1
-    #
-    #     # last FES count was below the threshold and the current one has passed it
-    #     # add the result for the last FES count
-    #     elif(currentFES > FESThresholds[currentThresholdIndex] * GA.maxFES):
-    #         FESThresholdErrors.append(error = results["errors"][k-1])
-    #         FESMultipliers.append(FESThresholds[currentThresholdIndex])
-    #         currentThresholdIndex += 1
+        writer = csv.writer(resultsFile, delimiter = ',')
 
-    print( str(error) + "," + str(success) + "," + str(generation) + "," + str(FESCount) )
+        writer.writerow( ["Fi_10D", "Best", "Worst", "Median", "Mean", "Std_Dev", "Success_Rate"] )
 
-    # print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
-    # " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
-    # " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
 
-    # end = time.time()
-    # print("time:" + str(end - start))
+    for i in range(len(functions)):
+
+        plotFileName = pathName + "/GA_F" + str(i+1) + "_" + str(dims) + "D_Plot.csv"
+
+        with open(plotFileName, "w") as resultsFile:
+
+            writer = csv.writer(resultsFile, delimiter = ',')
+
+            header = ["FES_Multiplier"]
+            header.extend( ["Run " + str(i+1) for i in range(numRuns)] )
+            header.append("Average")
+
+            writer.writerow( header )
+
+        bestPlotFileName = pathName + "/GA_F" + str(i+1) + "_" + str(dims) + "D_BestPlot.csv"
+
+        with open(bestPlotFileName, "w") as resultsFile:
+
+            writer = csv.writer(resultsFile, delimiter = ',')
+            header = ["FES_Multiplier", "Error"]
+            writer.writerow( header )
+
+        worstPlotFileName = pathName + "/GA_F" + str(i+1) + "_" + str(dims) + "D_WorstPlot.csv"
+
+        with open(worstPlotFileName, "w") as resultsFile:
+
+            writer = csv.writer(resultsFile, delimiter = ',')
+            header = ["FES_Multiplier", "Error"]
+            writer.writerow( header )
+
+
+        errors = []
+        successes = []
+        FESResults = []
+
+        for j in range(numRuns):
+
+            # Initialization
+            GA = GeneticAlgorithm(functions[i], bounds, crit="min", optimum=optimums[i], tol=1e-08, eliteSize=0, matingPoolSize=100, popSize=100) #F5 = -310
+
+            GA.setParentSelection(GA.tournamentSelection, (True,) )
+            GA.setCrossover(GA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
+            GA.setMutation(GA.uniformMutation, (0.05, )) # prob, mean, sigma
+            GA.setNewPopSelection(GA.genitor, None)
+            GA.execute()
+            results = GA.results
+
+            # Treating results
+
+            errors.append(results["errors"][-1])
+            successes.append( int(results["errors"][-1] <= GA.tol) )
+            # True/False values of successes are converted to int, to fetch the mean (success rate)
+
+            # getting errors for different FES values
+
+            currentFES = 0
+            FESThresholdErrors = [] # errors for each FES multiplier
+
+            for k in range(len(FESThresholds)):
+
+                l = 0
+                endReached = False
+
+                for m in range ( l, len( results["FESCounts"] ) ):
+
+                    currentFES = results["FESCounts"][m]
+
+                    # FES value coincides with the threshold or has surpassed it
+                    if(currentFES >= FESThresholds[k] * GA.maxFES):
+                        FESThresholdErrors.append(results["errors"][m])
+                        l = k + 1
+                        break
+
+                    elif ( m == len( results["FESCounts"] ) - 1 ):
+                        FESThresholdErrors.append(results["errors"][m])
+                        l = k + 1
+                        endReached = True
+                        break
+
+                if(endReached): break
+
+
+            FESResults.append(FESThresholdErrors) # each line is an execution
+
+        # End of the 25 runs. Write the results to the table and plot files.
+
+        # Result tables
+
+        with open(tableFileName, "a") as resultsFile:
+
+            writer = csv.writer(resultsFile, delimiter = ',')
+
+            writer.writerow( [str(i+1), min(errors), max(errors), statistics.median(errors),
+            statistics.mean(errors), statistics.stdev(errors), statistics.mean(successes)] )
+            # statistics.mean(successes) works, even if it is a list of bools
+
+        # Normal plots
+        with open(plotFileName, "a") as resultsFile:
+
+            writer = csv.writer(resultsFile, delimiter = ',')
+            lastValidVals = [0 for j in range(numRuns)]
+
+            for i in range(len(FESThresholds)):
+
+                row = [FESThresholds[i]]
+                rowVals = []
+
+                for j in range(numRuns):
+
+                    if( i < len(FESResults[j]) ):
+                        row.append(FESResults[j][i])
+                        rowVals.append(FESResults[j][i])
+                        lastValidVals[j] = FESResults[j][i]
+
+                    else:
+                        row.append("None")
+                        rowVals.append(lastValidVals[j]) # for the mean, use the last valid error value
+
+                mn = statistics.mean(rowVals)
+                row.append(mn)
+                writer.writerow(row)
+
+        # Finding best run
+        bestRunId = errors.index(min(errors))
+
+        # Best run plot
+        with open(bestPlotFileName, "a") as resultsFile:
+
+            writer = csv.writer(resultsFile, delimiter = ',')
+
+            for i in range(len(FESThresholds)):
+
+                if( i >= len(FESResults[bestRunId]) ): break
+                row = [FESThresholds[i], FESResults[bestRunId][i]]
+                writer.writerow(row)
+
+        # Finding worst run
+        worstRunId = errors.index(max(errors))
+
+        # Worst run plot
+        with open(worstPlotFileName, "a") as resultsFile:
+
+            writer = csv.writer(resultsFile, delimiter = ',')
+
+            for i in range(len(FESThresholds)):
+
+                if( i >= len(FESResults[worstRunId]) ): break
+                row = [FESThresholds[i], FESResults[worstRunId][i]]
+                writer.writerow(row)

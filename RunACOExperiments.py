@@ -92,13 +92,11 @@ if __name__ == '__main__':
 
                     # FES value coincides with the threshold or has surpassed it
                     if(currentFES >= FESThresholds[k] * ACO.maxFES):
-                        print(currentFES, FESThresholds[k] * ACO.maxFES)
                         FESThresholdErrors.append(results["errors"][m])
                         l = k + 1
                         break
 
                     elif ( m == len( results["FESCounts"] ) - 1 ):
-                        print(currentFES, FESThresholds[k] * ACO.maxFES)
                         FESThresholdErrors.append(results["errors"][m])
                         l = k + 1
                         endReached = True
@@ -106,9 +104,7 @@ if __name__ == '__main__':
 
                 if(endReached): break
 
-
             FESResults.append(FESThresholdErrors) # each line is an execution
-            print(FESThresholdErrors)
 
         # End of the 25 runs. Write the results to the table and plot files.
 
@@ -126,27 +122,26 @@ if __name__ == '__main__':
         with open(plotFileName, "a") as resultsFile:
 
             writer = csv.writer(resultsFile, delimiter = ',')
+            lastValidVals = [0 for j in range(numRuns)]
 
             for i in range(len(FESThresholds)):
 
                 row = [FESThresholds[i]]
                 rowVals = []
-                lastValidVal = 0
 
                 for j in range(numRuns):
 
                     if( i < len(FESResults[j]) ):
                         row.append(FESResults[j][i])
                         rowVals.append(FESResults[j][i])
-                        lastValidVal = FESResults[j][i]
+                        lastValidVals[j] = FESResults[j][i]
 
                     else:
                         row.append("None")
-                        rowVals.append(lastValidVal) # for the mean, use the last valid error value
+                        rowVals.append(lastValidVals[j]) # for the mean, use the last valid error value
 
-                # mn = append(statistics.mean(rowVals))
-                # if mn != 0: row.append(mn) # mean different from 0 indicates that there was at least one execution at this threshold
-                # else: row.append("None")
+                mn = statistics.mean(rowVals)
+                row.append(mn)
                 writer.writerow(row)
 
         # Finding best run
