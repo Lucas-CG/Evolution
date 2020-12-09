@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import csv
 from os import makedirs
+import locale
 
 colors = ["black", "royalblue", "brown", "gold", "lawngreen", "purple", "orangered", "deeppink"]
 algorithms = ["ABC", "ACO", "AGA", "DE", "GA", "PSO", "RegPSO", "SSO"]
@@ -16,13 +17,17 @@ for algIndex in range(len(algorithms)):
 
     meanFES[algorithms[algIndex]] = {}
     meanErrors[algorithms[algIndex]] = {}
+    bestFES[algorithms[algIndex]] = {}
+    bestErrors[algorithms[algIndex]] = {}
+    worstFES[algorithms[algIndex]] = {}
+    worstErrors[algorithms[algIndex]] = {}
 
     for funIndex in range(1, 6):
 
         pathName = "Results/" + algorithms[algIndex]
-        plotFileName = pathName + "/" + algorithms[algIndex] + "_F" + str(i+1) + "_" + str(dims) + "D_Plot.csv"
-        bestPlotFileName = pathName + "/" + algorithms[algIndex] + "_F" + str(i+1) + "_" + str(dims) + "D_BestPlot.csv"
-        worstPlotFileName = pathName + "/" + algorithms[algIndex] + "_F" + str(i+1) + "_" + str(dims) + "D_WorstPlot.csv"
+        plotFileName = pathName + "/" + algorithms[algIndex] + "_F" + str(funIndex) + "_10D_Plot.csv"
+        bestPlotFileName = pathName + "/" + algorithms[algIndex] + "_F" + str(funIndex) + "_10D_BestPlot.csv"
+        worstPlotFileName = pathName + "/" + algorithms[algIndex] + "_F" + str(funIndex) + "_10D_WorstPlot.csv"
 
         meanFES[algorithms[algIndex]][str(funIndex)] = []
         meanErrors[algorithms[algIndex]][str(funIndex)] = []
@@ -77,33 +82,33 @@ for funIndex in range(1, 6):
         plt.plot(meanFES[algorithms[algIndex]][str(funIndex)],
         meanErrors[algorithms[algIndex]][str(funIndex)],
         colors[algIndex], label=algorithms[algIndex])
-        plt.title("F" + str(funIndex) + ": Desempenhos Médios")
-        plt.xlabel("N * MaxFES")
-        plt.ylabel("Erro")
-        plt.legend(loc='best')
-        plt.savefig(pathName + "/F" + str(funIndex) + "_Mean.svg", bbox_inches='tight')
-        plt.clf()
+    plt.title("F" + str(funIndex) + ": Desempenhos Médios")
+    plt.xlabel("N * MaxFES")
+    plt.ylabel("Erro")
+    plt.legend(loc='best')
+    plt.savefig(pathName + "/F" + str(funIndex) + "_Mean.svg", bbox_inches='tight')
+    plt.clf()
 
     for algIndex in range(len(algorithms)):
 
         plt.plot(bestFES[algorithms[algIndex]][str(funIndex)],
         bestErrors[algorithms[algIndex]][str(funIndex)],
         colors[algIndex], label=algorithms[algIndex])
-        plt.title("F" + str(funIndex) + ": Desempenhos das Melhores Rodadas")
-        plt.xlabel("N * MaxFES")
-        plt.ylabel("Erro")
-        plt.legend(loc='best')
-        plt.savefig(pathName + "/F" + str(funIndex) + "_Best.svg", bbox_inches='tight')
-        plt.clf()
+    plt.title("F" + str(funIndex) + ": Desempenhos das Melhores Rodadas")
+    plt.xlabel("N * MaxFES")
+    plt.ylabel("Erro")
+    plt.legend(loc='best')
+    plt.savefig(pathName + "/F" + str(funIndex) + "_Best.svg", bbox_inches='tight')
+    plt.clf()
 
     for algIndex in range(len(algorithms)):
 
         plt.plot(worstFES[algorithms[algIndex]][str(funIndex)],
         worstErrors[algorithms[algIndex]][str(funIndex)],
         colors[algIndex], label=algorithms[algIndex])
-        plt.title("F" + str(funIndex) + ": Desempenhos das Piores Rodadas")
-        plt.xlabel("N * MaxFES")
-        plt.ylabel("Erro")
-        plt.legend(loc='best')
-        plt.savefig(pathName + "/F" + str(funIndex) + "_Worst.svg", bbox_inches='tight')
-        plt.clf()
+    plt.title("F" + str(funIndex) + ": Desempenhos das Piores Rodadas")
+    plt.xlabel("N * MaxFES")
+    plt.ylabel("Erro")
+    plt.legend(loc='best')
+    plt.savefig(pathName + "/F" + str(funIndex) + "_Worst.svg", bbox_inches='tight')
+    plt.clf()
