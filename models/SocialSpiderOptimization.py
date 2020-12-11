@@ -184,7 +184,7 @@ class SocialSpiderOptimization(object):
         """Calculates the Euclidean distance between two spiders whose indexes are a and b."""
 
         if(self.normalizeDistances):
-            return 27 * np.linalg.norm( self.spiders[a] - self.spiders[b] )/self.diameter
+            return np.linalg.norm( self.spiders[a] - self.spiders[b] )/self.diameter
 
         else:
             return np.log10(1 + np.linalg.norm( self.spiders[a] - self.spiders[b] ))
@@ -510,7 +510,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    SSO = SocialSpiderOptimization(cec2005.F1(dims), bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=-450) # F5: -310 / others: -450
+    SSO = SocialSpiderOptimization(cec2005.F4(dims), bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=-450) # F5: -310 / others: -450
     #compare normalizing and non-normalizing
     #compare populations of 20, 30 and 50
     SSO.execute()
