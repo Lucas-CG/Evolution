@@ -50,7 +50,7 @@ class SocialSpiderAlgorithm(object):
         self.targetVibrations = np.zeros(self.popSize) # target vibration intensities per spider
         self.targetPositions = np.zeros(shape=(self.popSize, self.dimensions)) # target positions per spider
         self.iterationsSinceLastChange = np.zeros(self.popSize)
-        self.movements = np.zeros( shape=(self.popSize, self.dimensions) )
+        self.pastMovements = np.zeros( shape=(self.popSize, self.dimensions) )
         self.masks = [ [False for i in range(self.dimensions)] for i in range(self.popSize) ]
         self.vibrations = np.zeros( shape=(self.popSize, self.popSize) )
         self.distances = np.zeros( shape=(self.popSize, self.popSize) )
@@ -118,7 +118,6 @@ class SocialSpiderAlgorithm(object):
                 self.calcDistances()
                 self.generateVibrations()
                 self.moveSpiders()
-
 
                 self.genCount += 1
 
@@ -192,18 +191,48 @@ class SocialSpiderAlgorithm(object):
             # if they aren't, just increment the counter
             if(maxVibrationIntensities[i] > self.targets[i]):
                 self.targetVibrations[i] = maxVibrationIntensities[i]
-                self.targetPositions[i] = self.spiders[i]
+                self.targetPositions[i] = maxVibrationOrigins[i]
                 self.iterationsSinceLastChange[i] = 0
 
             else:
                 self.iterationsSinceLastChange[i] += 1
 
-
             # checking if the mask will be changed
             draw = np.random.uniform(0, 1)
 
-            if draw < 1 - (self.maskChangeProb) ** self.iterationsSinceLastChange[i]
+            if draw < 1 - ((self.maskChangeProb) ** self.iterationsSinceLastChange[i]) :
+                # change the mask
+                for j in range(self.dimensions):
+                    draw = np.random.uniform(0, 1)
+                    self.masks[i] = True if draw < self.maskOneProb else False
 
+                if( max(self.masks[i]) == False ): # every bit is 0
+                    position = np.random.randint(0, self.dimensions)
+                    self.masks[i][position] = True
+
+                if( min(self.masks[i]) == True ): # every bit is 1
+                    position = np.random.randint(0, self.dimensions)
+                    self.masks[i][position] = False
+
+
+            pFollowing = []
+
+            for j in range(self.dimensions):
+
+                if self.masks[i][j] == False: # 0 bit
+                    pFollowing.append(self.targetPositions[i][j])
+
+                else: # 1 bit
+                    randomInd = np.random.randint(0, self.popSize)
+                    pFollowing.append(self.spiders[randomInd][j])
+
+            pFollowing = np.array(pFollowing)
+
+            movement = np.random.uniform(0, 1) * self.pastMovements[i] +
+                       np.multiply( (self.pFollowing - self.spiders[i]), np.random.uniform(0, 1, shape=(self.dimensions, ) ) )
+            # note: np.multiply = element-wise multiplication
+            self.spiders[i] = self.spiders[i] + movement
+            self.pastMovements[i] = movement
 
 
 
