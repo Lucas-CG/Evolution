@@ -5,7 +5,7 @@ from scipy.spatial.distance import pdist, squareform
 
 class SocialSpiderAlgorithm(object):
 
-    def __init__(self, func, bounds, popSize=None, crit="min", popSize=30, vibrationConstant=-700, attenuationRate=1, maskChangeProb=0.5, maskOneProb=0.5, optimum=-450, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, crit="min", popSize=30, vibrationConstant=-700, attenuationRate=1, maskChangeProb=0.7, maskOneProb=0.1, optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
@@ -39,6 +39,7 @@ class SocialSpiderAlgorithm(object):
         if(maxFES): self.maxFES = maxFES
         else: self.maxFES = 10000 * self.dimensions
 
+        self.vibrationConstant = vibrationConstant
         self.attenuationRate = attenuationRate
         self.maskChangeProb = maskChangeProb
         self.maskOneProb = maskOneProb
@@ -81,9 +82,35 @@ class SocialSpiderAlgorithm(object):
         worstPoints = []
         avgFits = []
 
+        self.calculateFVals()
+
+        metrics = self.getFitnessMetrics()
+
+        generations.append(self.genCount)
+        FESCount.append(self.FES)
+        errors.append(metrics["error"])
+        bestFits.append(metrics["bestVal"])
+        bestPoints.append(metrics["bestPoints"])
+        worstFits.append(metrics["worstVal"])
+        worstPoints.append(metrics["worstPoints"])
+        avgFits.append(metrics["avg"])
+
+        self.results = {"generations": generations,
+            "FESCounts": FESCount,
+            "errors": errors,
+            "bestFits": bestFits,
+            "bestPoints": bestPoints,
+            "worstFits": worstFits,
+            "worstPoints": worstPoints,
+            "avgFits": avgFits}
+
         try:
 
             while ( abs(self.fVals[self.bestSpiderIndexes[0]] - self.optimum) > self.tol ):
+
+                self.calcDistances()
+                self.generateVibrations()
+                self.moveSpiders()
 
                 try:
                     self.calculateFVals()
@@ -112,10 +139,6 @@ class SocialSpiderAlgorithm(object):
                     "avgFits": avgFits}
 
                 print(metrics["error"])
-
-                self.calcDistances()
-                self.generateVibrations()
-                self.moveSpiders()
 
                 self.genCount += 1
 
@@ -154,7 +177,7 @@ class SocialSpiderAlgorithm(object):
 
     def calcStdMean(self):
         """Calculates the mean of the standard deviations at every dimension."""
-        return base_distance = np.mean(np.std(self.spiders, 0))
+        return np.mean(np.std(self.spiders, 0))
 
     def calcDistances(self):
         """Calculates the Manhattan distances between all pairs of spiders. Saves it to self.distances."""
@@ -225,7 +248,7 @@ class SocialSpiderAlgorithm(object):
 
             pFollowing = np.array(pFollowing)
 
-            movement = np.random.uniform(0, 1) * self.pastMovements[i] +
+            movement = np.random.uniform(0, 1) * self.pastMovements[i] + \
                        np.multiply( (self.pFollowing - self.spiders[i]), np.random.uniform(0, 1, shape=(self.dimensions, ) ) )
             # note: np.multiply = element-wise multiplication
             candidate = self.spiders[i] + movement
@@ -381,13 +404,13 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    SSA = SocialSpiderAlgorithm(cec2005.F1(dims), bounds, popSize=30, vibrationConstant=-700, attenuationRate=1, maskChangeProb=0.5, maskOneProb=0.5, optimum=-450) # F5: -310 / others: -450
+    SSA = SocialSpiderAlgorithm(cec2005.F1(dims), bounds, popSize=30, vibrationConstant=-700, attenuationRate=1, maskChangeProb=0.7, maskOneProb=0.1, optimum=-450) # F5: -310 / others: -450
     #compare normalizing and non-normalizing
     #compare populations of 20, 30 and 50
-    SSO.execute()
-    results = SSO.results
+    SSA.execute()
+    results = SSA.results
 
-    print("SSO: for criterion = " + SSO.crit + ", reached optimum of " + str(results["bestFits"][-1]) +
+    print("SSA: for criterion = " + SSA.crit + ", reached optimum of " + str(results["bestFits"][-1]) +
     " (error of " + str(results["errors"][-1]) + ") (points " + str(results["bestPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
     " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
 
