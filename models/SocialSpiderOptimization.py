@@ -2,8 +2,6 @@ import numpy as np
 import math
 import time
 
-#IMPORTANT CHANGE: USED LOG1P FOR DISTANCE (DISTANCES ARE TOO LARGE!)
-
 class MaxFESReached(Exception):
     """Exception used to interrupt the DE operation when the maximum number of fitness evaluations is reached."""
     pass

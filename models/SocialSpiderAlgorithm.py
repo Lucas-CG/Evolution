@@ -3,6 +3,10 @@ import math
 import time
 from scipy.spatial.distance import pdist, squareform
 
+class MaxFESReached(Exception):
+    """Exception used to interrupt the DE operation when the maximum number of fitness evaluations is reached."""
+    pass
+
 class SocialSpiderAlgorithm(object):
 
     def __init__(self, func, bounds, crit="min", popSize=30, vibrationConstant=-700, attenuationRate=1, maskChangeProb=0.7, maskOneProb=0.1, optimum=-450, maxFES=None, tol=1e-08):
@@ -107,6 +111,9 @@ class SocialSpiderAlgorithm(object):
         try:
 
             while ( abs(self.fVals[self.bestSpiderIndexes[0]] - self.optimum) > self.tol ):
+
+                # print(self.spiders)
+                # time.sleep(1)
 
                 self.calcStdMean()
                 self.calcDistances()
@@ -404,7 +411,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    SSA = SocialSpiderAlgorithm(cec2005.F1(dims), bounds, popSize=30, vibrationConstant=-700, attenuationRate=1, maskChangeProb=0.7, maskOneProb=0.1, optimum=-450) # F5: -310 / others: -450
+    SSA = SocialSpiderAlgorithm(cec2005.F1(dims), bounds, popSize=10, vibrationConstant=-700, attenuationRate=1, maskChangeProb=0.7, maskOneProb=0.1, optimum=-450) # F5: -310 / others: -450
     #compare normalizing and non-normalizing
     #compare populations of 20, 30 and 50
     SSA.execute()
