@@ -108,6 +108,7 @@ class SocialSpiderAlgorithm(object):
 
             while ( abs(self.fVals[self.bestSpiderIndexes[0]] - self.optimum) > self.tol ):
 
+                self.calcStdMean()
                 self.calcDistances()
                 self.generateVibrations()
                 self.moveSpiders()
@@ -145,6 +146,13 @@ class SocialSpiderAlgorithm(object):
         except KeyboardInterrupt:
             return
 
+    def calcStdMean(self):
+        """Calculates the mean of the standard deviations at every dimension."""
+        self.stdMean = np.mean(np.std(self.spiders, 0))
+
+    def calcDistances(self):
+        """Calculates the Manhattan distances between all pairs of spiders. Saves it to self.distances."""
+        self.distances = squareform(pdist(self.spiders, 'cityblock'))
 
     def vibration(self, index1, index2):
         """Calculates a vibration sent from self.spiders[index1] to self.spiders[index2]. If index1 and index2 are equal,
@@ -160,7 +168,6 @@ class SocialSpiderAlgorithm(object):
                 return np.log10(self.fVals[index1])
 
         else:
-
             return self.vibrations[index1][index1] * np.exp( -(self.distances[index1][index2]) / (self.stdMean * self.attenuationRate) )
 
     def generateVibrations(self):
@@ -175,13 +182,6 @@ class SocialSpiderAlgorithm(object):
             for j in range(self.popSize):
                 if(i != j): self.vibrations[i][j] = self.vibration(i, j) # i: source; j: destination
 
-    def calcStdMean(self):
-        """Calculates the mean of the standard deviations at every dimension."""
-        return np.mean(np.std(self.spiders, 0))
-
-    def calcDistances(self):
-        """Calculates the Manhattan distances between all pairs of spiders. Saves it to self.distances."""
-        self.distances = squareform(pdist(self.spiders, 'cityblock'))
 
     def moveSpiders(self):
 
@@ -209,7 +209,7 @@ class SocialSpiderAlgorithm(object):
             # checking if the strongest vibrations are stronger than the past targets
             # if they are, change the target and reset the counter.
             # if they aren't, just increment the counter
-            if(maxVibrationIntensities[i] > self.targets[i]):
+            if(maxVibrationIntensities[i] > self.targetVibrations[i]):
                 self.targetVibrations[i] = maxVibrationIntensities[i]
                 self.targetPositions[i] = maxVibrationOrigins[i]
                 self.iterationsSinceLastChange[i] = 0
@@ -224,7 +224,7 @@ class SocialSpiderAlgorithm(object):
                 # change the mask
                 for j in range(self.dimensions):
                     draw = np.random.uniform(0, 1)
-                    self.masks[i] = True if draw < self.maskOneProb else False
+                    self.masks[i][j] = True if draw < self.maskOneProb else False
 
                 if( max(self.masks[i]) == False ): # every bit is 0
                     position = np.random.randint(0, self.dimensions)
@@ -249,11 +249,11 @@ class SocialSpiderAlgorithm(object):
             pFollowing = np.array(pFollowing)
 
             movement = np.random.uniform(0, 1) * self.pastMovements[i] + \
-                       np.multiply( (self.pFollowing - self.spiders[i]), np.random.uniform(0, 1, shape=(self.dimensions, ) ) )
+                       np.multiply( (pFollowing - self.spiders[i]), np.random.uniform(0, 1, (self.dimensions, ) ) )
             # note: np.multiply = element-wise multiplication
             candidate = self.spiders[i] + movement
             self.pastMovements[i] = movement
-            self.spiders[i] = checkNCorrectBounds(i, candidate)
+            self.spiders[i] = self.checkNCorrectBounds(i, candidate)
 
 
     def checkNCorrectBounds(self, index, candidate):
