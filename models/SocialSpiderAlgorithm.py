@@ -43,7 +43,6 @@ class SocialSpiderAlgorithm(object):
         self.maskChangeProb = maskChangeProb
         self.maskOneProb = maskOneProb
 
-
         # Control attributes
         self.spiders = []
         self.fVals = np.zeros(self.popSize)
@@ -60,7 +59,6 @@ class SocialSpiderAlgorithm(object):
         self.FES = 0 # function evaluations
         self.genCount = 0
         self.results = None
-
 
     def randomSolution(self):
         return np.random.uniform(self.bounds[0], self.bounds[1])
@@ -120,7 +118,6 @@ class SocialSpiderAlgorithm(object):
                 self.moveSpiders()
 
                 self.genCount += 1
-
 
         except KeyboardInterrupt:
             return
@@ -231,11 +228,26 @@ class SocialSpiderAlgorithm(object):
             movement = np.random.uniform(0, 1) * self.pastMovements[i] +
                        np.multiply( (self.pFollowing - self.spiders[i]), np.random.uniform(0, 1, shape=(self.dimensions, ) ) )
             # note: np.multiply = element-wise multiplication
-            self.spiders[i] = self.spiders[i] + movement
+            candidate = self.spiders[i] + movement
             self.pastMovements[i] = movement
+            self.spiders[i] = checkNCorrectBounds(i, candidate)
 
 
+    def checkNCorrectBounds(self, index, candidate):
+        """Bound checking and correcting function for the genes of a spider specified by [index].
+        Its candidate new value is given by newSpider. Works by reflecting the past position, if necessary."""
 
+        newSpider = np.copy(candidate)
+
+        for i in range( len(newSpider) ):
+
+            if(newSpider[i] < self.bounds[0][i]):
+                newSpider[i] = (self.spiders[index][i] - self.bounds[0][i]) * np.random.uniform(0, 1) # past position - lower bound
+
+            if(newSpider[i] > self.bounds[1][i]):
+                newSpider[i] = (self.bounds[1][i] - self.spiders[index][i]) * np.random.uniform(0, 1) # upper bound - past position
+
+        return newSpider
 
 
     def calculateFVals(self):
@@ -357,4 +369,27 @@ class SocialSpiderAlgorithm(object):
 
 
 if __name__ == '__main__':
-    pass
+    # Test of the SSA's performance over CEC2005's F1 (shifted sphere)
+
+    import time
+    from optproblems import cec2005
+    # np.seterr("raise") # any calculation error immediately stops the execution
+    dims = 10
+
+    bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ] # 10-dimensional sphere (optimum: 0)
+
+    start = time.time()
+
+    # Initialization
+    SSA = SocialSpiderAlgorithm(cec2005.F1(dims), bounds, popSize=30, vibrationConstant=-700, attenuationRate=1, maskChangeProb=0.5, maskOneProb=0.5, optimum=-450) # F5: -310 / others: -450
+    #compare normalizing and non-normalizing
+    #compare populations of 20, 30 and 50
+    SSO.execute()
+    results = SSO.results
+
+    print("SSO: for criterion = " + SSO.crit + ", reached optimum of " + str(results["bestFits"][-1]) +
+    " (error of " + str(results["errors"][-1]) + ") (points " + str(results["bestPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
+
+    end = time.time()
+    print("time:" + str(end - start))

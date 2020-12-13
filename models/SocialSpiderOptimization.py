@@ -498,7 +498,7 @@ class SocialSpiderOptimization(object):
 
 if __name__ == '__main__':
 
-    # Test of the PSO's performance over CEC2005's F1 (shifted sphere)
+    # Test of the SSO's performance over CEC2005's F1 (shifted sphere)
 
     import time
     from optproblems import cec2005
@@ -510,7 +510,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    SSO = SocialSpiderOptimization(cec2005.F4(dims), bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=-450) # F5: -310 / others: -450
+    SSO = SocialSpiderOptimization(cec2005.F1(dims), bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=-450) # F5: -310 / others: -450
     #compare normalizing and non-normalizing
     #compare populations of 20, 30 and 50
     SSO.execute()
