@@ -1,8 +1,14 @@
 from models import DifferentialEvolution
-from opfunu.cec.cec2014.function import F1, F2, F4, F6, F7, F9, F14
 from os import makedirs
 import statistics
 import csv
+import sys
+sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python")
+import cec2014
+
+def func(arr):
+    return cec2014.cec14(arr, 1)
+
 
 if __name__ == '__main__':
 

@@ -5,7 +5,7 @@ if(__name__ == '__main__'): from utilities.RouletteWheel import RouletteWheel
 else: from .utilities.RouletteWheel import RouletteWheel
 
 class MaxFESReached(Exception):
-    """Exception used to interrupt the DE operation when the maximum number of fitness evaluations is reached."""
+    """Exception used to interrupt the ACO operation when the maximum number of fitness evaluations is reached."""
     pass
 
 class AntColonyOptimization(object):
@@ -353,6 +353,8 @@ class AntColonyOptimization(object):
                     "worstPoints": worstPoints,
                     "avgFits": avgFits}
 
+                print(metrics["error"])
+
         except KeyboardInterrupt:
             return
 
@@ -371,6 +373,31 @@ if __name__ == '__main__':
 
     # Initialization
     ACO = AntColonyOptimization(cec2005.F2(dims), bounds, optimum=-450) # F5: -310 / others: -450
+    ACO.execute()
+    results = ACO.results
+
+    print("ACO: for criterion = " + ACO.crit + ", reached optimum of " + str(results["bestFits"][-1]) +
+    " (error of " + str(results["errors"][-1]) + ") (points " + str(results["bestPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
+
+    end = time.time()
+    print("time:" + str(end - start))
+
+    import sys
+    sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python")
+    import cec2014
+
+    def func(arr):
+        return cec2014.cec14(arr, 1)
+
+    dims = 10
+
+    bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ] # 10-dimensional sphere (optimum: 0)
+
+    start = time.time()
+
+    # Initialization
+    ACO = AntColonyOptimization(func, bounds, numAnts=40, archiveSize=100, optimum=100) # F5: -310 / others: -450
     ACO.execute()
     results = ACO.results
 

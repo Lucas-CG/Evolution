@@ -362,33 +362,39 @@ if __name__ == '__main__':
     import time
     from optproblems import cec2005
 
-    bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
+    # bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
+    #
+    # start = time.time()
+    #
+    # # Initialization
+    # DE = DifferentialEvolution(cec2005.F1(10), bounds)
+    # DE.setMutation(DE.classicMutation, ("rand", 0.5, 1)) # base, F, nDiffs
+    # DE.setCrossover(DE.classicCrossover, ("bin", 0.5)) # type, CR
+    # DE.execute()
+    # results = DE.results
+    #
+    # print("DE: for criterion = " + DE.crit + ", reached optimum of " + str(results["minFits"][-1]) +
+    # " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    # " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
+    # end = time.time()
+    # print("time:" + str(end - start))
 
-    start = time.time()
 
-    # Initialization
-    DE = DifferentialEvolution(cec2005.F1(10), bounds)
-    DE.setMutation(DE.classicMutation, ("rand", 0.5, 1)) # base, F, nDiffs
-    DE.setCrossover(DE.classicCrossover, ("bin", 0.5)) # type, CR
-    DE.execute()
-    results = DE.results
+    import sys
+    sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python")
+    import cec2014
 
-    print("DE: for criterion = " + DE.crit + ", reached optimum of " + str(results["minFits"][-1]) +
-    " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
-    " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
+    def func(arr):
+        return cec2014.cec14(arr, 1)
 
-    end = time.time()
-    print("time:" + str(end - start))
-
-    from opfunu.cec.cec2014.function import F1, F2, F4, F6, F7, F9, F14
 
     bounds = [ [-100 for i in range(30)], [100 for i in range(30)] ] # 10-dimensional sphere (optimum: 0)
 
     start = time.time()
 
     # Initialization
-    DE = DifferentialEvolution(F1, bounds, optimum=100)
-    DE.setMutation(DE.classicMutation, ("rand", 0.5, 1)) # base, F, nDiffs
+    DE = DifferentialEvolution(func, bounds, optimum=100)
+    DE.setMutation(DE.classicMutation, ("rand", 0.5, 2)) # base, F, nDiffs
     DE.setCrossover(DE.classicCrossover, ("bin", 0.5)) # type, CR
     DE.execute()
     results = DE.results

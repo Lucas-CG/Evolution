@@ -165,6 +165,8 @@ class AdaptiveGA(object):
                     "minPoints": minPoints,
                     "avgFits": avgFits}
 
+                print(metrics["error"])
+
         except KeyboardInterrupt:
             return
 
@@ -172,7 +174,7 @@ class AdaptiveGA(object):
         """Calculates the fitness values for the entire population."""
 
         for ind in self.pop:
-            ind[1] = self.func(ind[0][:self.dimensions])
+            ind[1] = self.func(np.array(ind[0][:self.dimensions]))
             self.FES += 1
 
             if self.FES == self.maxFES: raise MaxFESReached
@@ -300,7 +302,7 @@ class AdaptiveGA(object):
             if(self.children[index][0][i] > self.bounds[1][i]): self.children[index][0][i] = self.bounds[1][i]
             #truncating to bounds
 
-        self.children[index][1] = self.func(self.children[index][0][:self.dimensions])
+        self.children[index][1] = self.func(np.array(self.children[index][0][:self.dimensions]))
         self.FES += 1
         if self.FES == self.maxFES: raise MaxFESReached
 
@@ -404,7 +406,7 @@ class AdaptiveGA(object):
                             break
 
                 child.append(genes)
-                child.append(self.func(genes[:self.dimensions]))
+                child.append(self.func(np.array(genes[:self.dimensions])))
                 self.FES += 1
                 if self.FES == self.maxFES: raise MaxFESReached
 
@@ -463,17 +465,45 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    GA = AdaptiveGA(cec2005.F1(10), bounds, eliteSize=1, popSize=50, adaptiveEpsilon=0.1)
+    AGA = AdaptiveGA(cec2005.F1(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05)
 
-    GA.setParentSelection(GA.tournamentSelection, (True,) )
-    GA.setCrossover(GA.blxAlphaCrossover, (0.5, 0.6)) # alpha, prob
-    GA.setMutation(GA.adaptiveCreepMutation, (1,)) # prob
-    GA.setNewPopSelection(GA.tournamentSelection, (False, ))
-    # GA.setNewPopSelection(GA.generationalSelection, None)
-    GA.execute()
-    results = GA.results
+    AGA.setParentSelection(AGA.tournamentSelection, (True,) )
+    AGA.setCrossover(AGA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
+    AGA.setMutation(AGA.adaptiveCreepMutation, (1,)) # prob
+    AGA.setNewPopSelection(AGA.genitor, None)
+    AGA.execute()
+    results = AGA.results
 
-    print("GA: for criterion = " + GA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
+    print("AGA: for criterion = " + AGA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
+    " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
+
+    end = time.time()
+    print("time:" + str(end - start))
+
+
+    import sys
+    sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python")
+    import cec2014
+
+    def func(arr):
+        return cec2014.cec14(arr, 1)
+
+    bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
+
+    start = time.time()
+
+    # Initialization
+    AGA = AdaptiveGA(func, bounds, crit="min", optimum=100, tol=1e-08, eliteSize=0, matingPoolSize=100, popSize=200, adaptiveEpsilon=1e-05)
+
+    AGA.setParentSelection(AGA.tournamentSelection, (True,) )
+    AGA.setCrossover(AGA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
+    AGA.setMutation(AGA.adaptiveCreepMutation, (1,)) # prob
+    AGA.setNewPopSelection(AGA.genitor, None)
+    AGA.execute()
+    results = AGA.results
+
+    print("AGA: for criterion = " + AGA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
     " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
     " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
 

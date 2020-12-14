@@ -1,0 +1,15 @@
+1) Use Debian
+2) git clone https://github.com/nacheteam/cec2014
+3) make debian install && make build
+4) Add the folder cec2014_data to the local execution directory, else it will produce a segmentation fault
+5)  In Python:
+    import sys
+    sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python")
+    import cec2014
+
+    def func(arr):
+        return cec2014.cec14(arr, 1)
+
+6) Pass func to optimizer.
+
+Extra: use numpy arrays. It doesn't accept other representations.
