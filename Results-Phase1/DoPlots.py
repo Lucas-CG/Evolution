@@ -4,7 +4,6 @@ from os import makedirs
 import numpy as np
 import locale
 
-funIndexes = [1, 2, 4, 6, 7, 9, 14]
 colors = ["black", "royalblue", "brown", "gold", "lawngreen", "purple", "orangered", "deeppink"]
 # algorithms = ["ABC", "ACO", "AGA", "DE", "GA", "PSO", "RegPSO", "SSO"]
 algorithms = ["ABC", "ACO", "AGA", "DE", "GA", "PSO", "SSO"]
@@ -25,7 +24,7 @@ for algIndex in range(len(algorithms)):
     worstFES[algorithms[algIndex]] = {}
     worstErrors[algorithms[algIndex]] = {}
 
-    for funIndex in funIndexes:
+    for funIndex in range(1, 6):
 
         pathName = "Results/" + algorithms[algIndex]
         plotFileName = pathName + "/" + algorithms[algIndex] + "_F" + str(funIndex) + "_10D_Plot.csv"
@@ -78,7 +77,7 @@ makedirs(pathName, exist_ok=True)
 
 # Plotting means
 
-for funIndex in funIndexes:
+for funIndex in range(1, 6):
 
     for algIndex in range(len(algorithms)):
 

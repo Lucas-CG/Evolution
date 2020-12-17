@@ -3,39 +3,13 @@ from optproblems import cec2005
 from os import makedirs
 import statistics
 import csv
-import sys
-sys.path.append("../../cec2014/python") # Fedora
-# sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python") # Windows
-import cec2014
-
-def F1(arr):
-    return cec2014.cec14(arr, 1)
-
-def F2(arr):
-    return cec2014.cec14(arr, 2)
-
-def F4(arr):
-    return cec2014.cec14(arr, 4)
-
-def F6(arr):
-    return cec2014.cec14(arr, 6)
-
-def F7(arr):
-    return cec2014.cec14(arr, 7)
-
-def F9(arr):
-    return cec2014.cec14(arr, 9)
-
-def F14(arr):
-    return cec2014.cec14(arr, 14)
 
 if __name__ == '__main__':
 
     dims = 10
     bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ]
-    functions = [F1, F2, F4, F6, F7, F9, F14]
-    funIndexes = [1, 2, 4, 6, 7, 9, 14]
-    optimums = [100, 200, 400, 600, 700, 900, 1400]
+    functions = [ cec2005.F1(dims), cec2005.F2(dims), cec2005.F3(dims), cec2005.F4(dims), cec2005.F5(dims)]
+    optimums = [-450, -450, -450, -450, -310]
     FESThresholds = [0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
     numRuns = 25
 
@@ -55,7 +29,7 @@ if __name__ == '__main__':
         writer.writerow( ["Fi_10D", "Best", "Worst", "Median", "Mean", "Std_Dev", "Success_Rate"] )
 
 
-    for i in funIndexes:
+    for i in range(len(functions)):
 
         plotFileName = pathName + "/RegPSO_F" + str(i+1) + "_" + str(dims) + "D_Plot.csv"
 
@@ -93,7 +67,7 @@ if __name__ == '__main__':
         for j in range(numRuns):
 
             # Initialization
-            PSO = RegPSO(functions[i], bounds, popSize=50, clerkK=False, inertiaDecay=True, optimum=optimums[i], prematureThreshold=1.1e-06)
+            RPSO = RegPSO(functions[i], bounds, popSize=80, clerkK=False, inertiaDecay=True, optimum=optimums[i])
             RPSO.execute()
             results = RPSO.results
 

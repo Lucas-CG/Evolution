@@ -1,34 +1,26 @@
-from models import DifferentialEvolution
+from models import AntColonyOptimization
+from optproblems import cec2005
 from os import makedirs
 import statistics
 import csv
-import sys
-sys.path.append("../../cec2014/python") # Fedora
-# sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python") # Windows
-import cec2014
-
-def func(arr):
-    return cec2014.cec14(arr, 1)
-
 
 if __name__ == '__main__':
 
     dims = 10
     bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ]
     functions = [ cec2005.F1(dims), cec2005.F2(dims), cec2005.F3(dims), cec2005.F4(dims), cec2005.F5(dims)]
-    # optimums = [-450, -450, -450, -450, -310]
-    optimums = [100, 200, 400, 600, 700, 900, 1400]
+    optimums = [-450, -450, -450, -450, -310]
     FESThresholds = [0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
     numRuns = 25
 
 
     # Creating result path
-    pathName = "Results/DE"
+    pathName = "Results/ACO"
     makedirs(pathName, exist_ok=True)
 
     # Initializing result files
 
-    tableFileName = pathName + "/DE_" + str(dims) + "D.csv"
+    tableFileName = pathName + "/ACO_" + str(dims) + "D.csv"
 
     with open(tableFileName, "w") as resultsFile:
 
@@ -39,7 +31,7 @@ if __name__ == '__main__':
 
     for i in range(len(functions)):
 
-        plotFileName = pathName + "/DE_F" + str(i+1) + "_" + str(dims) + "D_Plot.csv"
+        plotFileName = pathName + "/ACO_F" + str(i+1) + "_" + str(dims) + "D_Plot.csv"
 
         with open(plotFileName, "w") as resultsFile:
 
@@ -51,7 +43,7 @@ if __name__ == '__main__':
 
             writer.writerow( header )
 
-        bestPlotFileName = pathName + "/DE_F" + str(i+1) + "_" + str(dims) + "D_BestPlot.csv"
+        bestPlotFileName = pathName + "/ACO_F" + str(i+1) + "_" + str(dims) + "D_BestPlot.csv"
 
         with open(bestPlotFileName, "w") as resultsFile:
 
@@ -59,7 +51,7 @@ if __name__ == '__main__':
             header = ["FES_Multiplier", "Error"]
             writer.writerow( header )
 
-        worstPlotFileName = pathName + "/DE_F" + str(i+1) + "_" + str(dims) + "D_WorstPlot.csv"
+        worstPlotFileName = pathName + "/ACO_F" + str(i+1) + "_" + str(dims) + "D_WorstPlot.csv"
 
         with open(worstPlotFileName, "w") as resultsFile:
 
@@ -74,16 +66,14 @@ if __name__ == '__main__':
 
         for j in range(numRuns):
 
-            DE = DifferentialEvolution(functions[i], bounds, optimum = optimums[i]) #-450 for f1-4 or -310 for f5
-            DE.setMutation(DE.classicMutation, ("rand", 0.5, 1)) # base, F, nDiffs
-            DE.setCrossover(DE.classicCrossover, ("bin", 0.5)) # type, CR
-            DE.execute()
-            results = DE.results
+            ACO = AntColonyOptimization(functions[i], bounds, numAnts=2, optimum=optimums[i]) # F5: -310 / others: -450
+            ACO.execute()
+            results = ACO.results
 
             # Treating results
 
             errors.append(results["errors"][-1])
-            successes.append( int(results["errors"][-1] <= DE.tol) )
+            successes.append( int(results["errors"][-1] <= ACO.tol) )
             # True/False values of successes are converted to int, to fetch the mean (success rate)
 
             # getting errors for different FES values
@@ -101,7 +91,7 @@ if __name__ == '__main__':
                     currentFES = results["FESCounts"][m]
 
                     # FES value coincides with the threshold or has surpassed it
-                    if(currentFES >= FESThresholds[k] * DE.maxFES):
+                    if(currentFES >= FESThresholds[k] * ACO.maxFES):
                         FESThresholdErrors.append(results["errors"][m])
                         l = k + 1
                         break
@@ -113,7 +103,6 @@ if __name__ == '__main__':
                         break
 
                 if(endReached): break
-
 
             FESResults.append(FESThresholdErrors) # each line is an execution
 
