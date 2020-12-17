@@ -353,7 +353,7 @@ class AntColonyOptimization(object):
                     "worstPoints": worstPoints,
                     "avgFits": avgFits}
 
-                print(metrics["error"])
+                # print(metrics["error"])
 
         except KeyboardInterrupt:
             return

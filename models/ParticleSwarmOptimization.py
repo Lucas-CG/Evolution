@@ -137,7 +137,7 @@ class ParticleSwarmOptimization(object):
                     "minPoints": minPoints,
                     "avgFits": avgFits}
 
-                print(metrics["error"])
+                # print(metrics["error"])
 
         except KeyboardInterrupt:
             return

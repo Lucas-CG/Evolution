@@ -142,7 +142,7 @@ class RegPSO(object):
                     "minPoints": minPoints,
                     "avgFits": avgFits}
 
-                print(metrics["error"])
+                # print(metrics["error"])
 
                 self.calculateSwarmRadius()
 

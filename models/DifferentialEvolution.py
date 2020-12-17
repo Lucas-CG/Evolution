@@ -131,7 +131,7 @@ class DifferentialEvolution(object):
                     "minPoints": minPoints,
                     "avgFits": avgFits}
 
-                print(errors[-1])
+                # print(errors[-1])
 
         except KeyboardInterrupt:
             return
