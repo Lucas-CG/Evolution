@@ -12,6 +12,7 @@ import cec2014
 parser = argparse.ArgumentParser(description="Run experiments with an algorithm specified in the input.")
 parser.add_argument("--algorithm", dest='algorithm', help="Name of the algorithm (can be ACO, ABC, DE, GA, AGA, PSO, RegPSO or SSO).")
 algorithm = parser.parse_args(sys.argv[1:]).algorithm.upper()
+print(algorithm)
 
 if algorithm == "ACO":
     from models import AntColonyOptimization
@@ -113,23 +114,30 @@ if __name__ == '__main__':
             header = ["FES_Multiplier", "Error"]
             writer.writerow( header )
 
-
         errors = []
         successes = []
         FESResults = []
 
         for j in range(numRuns):
 
+            results = None
+
             if algorithm == "ACO":
                 model = AntColonyOptimization(functions[i], bounds, numAnts=2, optimum=optimums[i])
+                model.execute()
+                results = model.results
 
             if algorithm == "ABC":
-                ABC = ArtificialBeeColony(functions[i], bounds, popSize=50, workerOnlookerSplit=0.5, limit=None, numScouts=1, optimum=optimums[i])
+                model = ArtificialBeeColony(functions[i], bounds, popSize=50, workerOnlookerSplit=0.5, limit=None, numScouts=1, optimum=optimums[i])
+                model.execute()
+                results = model.results
 
             if algorithm == "DE":
                 model = DifferentialEvolution(functions[i], bounds, optimum = optimums[i])
                 model.setMutation(model.classicMutation, ("rand", 0.5, 1)) # base, F, nDiffs
                 model.setCrossover(model.classicCrossover, ("bin", 0.5)) # type, CR
+                model.execute()
+                results = model.results
 
             if algorithm == "GA":
                 model = GeneticAlgorithm(functions[i], bounds, crit="min", optimum=optimums[i], tol=1e-08, eliteSize=0, matingPoolSize=100, popSize=100)
@@ -137,6 +145,8 @@ if __name__ == '__main__':
                 model.setCrossover(model.blxAlphaCrossover, (0.5, 1)) # alpha, prob
                 model.setMutation(model.uniformMutation, (0.05, )) # prob, mean, sigma
                 model.setNewPopSelection(model.genitor, None)
+                model.execute()
+                results = model.results
 
             if algorithm == "AGA":
                 model = AdaptiveGA(functions[i], bounds, crit="min", optimum=optimums[i], tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05)
@@ -144,20 +154,23 @@ if __name__ == '__main__':
                 model.setCrossover(model.blxAlphaCrossover, (0.5, 1)) # alpha, prob
                 model.setMutation(model.adaptiveCreepMutation, (1,)) # prob
                 model.setNewPopSelection(model.genitor, None)
+                model.execute()
+                results = model.results
 
             if algorithm == "PSO":
                 model = ParticleSwarmOptimization(functions[i], bounds, popSize=80, globalWeight=2.05, localWeight=2.05, clerkK=False, inertiaDecay=True, optimum=optimums[i])
+                model.execute()
+                results = model.results
 
             if algorithm == "REGPSO":
                 model = RegPSO(functions[i], bounds, popSize=80, clerkK=False, inertiaDecay=True, optimum=optimums[i], prematureThreshold=1.1e-06)
+                model.execute()
+                results = model.results
 
             if algorithm == "SSO":
                 model = SocialSpiderOptimization(functions[i], bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=optimums[i])
-
-            #compare normalizing and non-normalizing
-            #compare populations of 20, 30 and 50
-            model.execute()
-            results = model.results
+                model.execute()
+                results = model.results
 
             # Treating results
 
