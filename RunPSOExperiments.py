@@ -4,30 +4,31 @@ from os import makedirs
 import statistics
 import csv
 import sys
+import numpy as np
 sys.path.append("../cec2014/python") # Fedora
 # sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python") # Windows
 import cec2014
 
 def F1(arr):
-    return cec2014.cec14(arr, 1)
+    return cec2014.cec14(np.array(arr), 1)
 
 def F2(arr):
-    return cec2014.cec14(arr, 2)
+    return cec2014.cec14(np.array(arr), 2)
 
 def F4(arr):
-    return cec2014.cec14(arr, 4)
+    return cec2014.cec14(np.array(arr), 4)
 
 def F6(arr):
-    return cec2014.cec14(arr, 6)
+    return cec2014.cec14(np.array(arr), 6)
 
 def F7(arr):
-    return cec2014.cec14(arr, 7)
+    return cec2014.cec14(np.array(arr), 7)
 
 def F9(arr):
-    return cec2014.cec14(arr, 9)
+    return cec2014.cec14(np.array(arr), 9)
 
 def F14(arr):
-    return cec2014.cec14(arr, 14)
+    return cec2014.cec14(np.array(arr), 14)
 
 if __name__ == '__main__':
 
