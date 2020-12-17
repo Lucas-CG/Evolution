@@ -483,7 +483,8 @@ if __name__ == '__main__':
 
 
     import sys
-    sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python")
+    sys.path.append("../../cec2014/python") # Fedora
+    # sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python") # Windows
     import cec2014
 
     def func(arr):

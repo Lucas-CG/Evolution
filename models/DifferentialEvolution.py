@@ -381,13 +381,14 @@ if __name__ == '__main__':
 
 
     import sys
-    sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python")
+    sys.path.append("../../cec2014/python") # Fedora
+    # sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python") # Windows
     import cec2014
 
     def func(arr):
         return cec2014.cec14(arr, 1)
 
-    bounds = [ [-100 for i in range(30)], [100 for i in range(30)] ]
+    bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ]
 
     start = time.time()
 
