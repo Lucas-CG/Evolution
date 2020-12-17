@@ -33,8 +33,7 @@ if __name__ == "__main__":
     numAlgs = 8
     p = Pool(numAlgs)
     funList = [runABC, runACO, runAGA, runDE, runGA, runPSO, runRegPSO, runSSO]
-    p.imap(doFunc, funList)
 
-    # outputs = p.imap(doFunc, funList)
-    # for output in outputs:
-    #     print(output)
+    outputs = p.imap(doFunc, funList)
+    for output in outputs:
+        print(output)

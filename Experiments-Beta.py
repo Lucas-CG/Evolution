@@ -13,7 +13,6 @@ import multiprocessing as mp
 parser = argparse.ArgumentParser(description="Run experiments with an algorithm specified in the input.")
 parser.add_argument("--algorithm", dest='algorithm', help="Name of the algorithm (can be ACO, ABC, DE, GA, AGA, PSO, RegPSO or SSO).")
 algorithm = parser.parse_args(sys.argv[1:]).algorithm.upper()
-print(algorithm)
 
 if algorithm == "ACO":
     from models import AntColonyOptimization
