@@ -30,9 +30,11 @@ def doFunc(func):
 
 if __name__ == "__main__":
 
-    runs = 8
-    p = Pool(runs)
+    numAlgs = 8
+    p = Pool(numAlgs)
     funList = [runABC, runACO, runAGA, runDE, runGA, runPSO, runRegPSO, runSSO]
-    outputs = p.imap(doFunc, funList)
-    for output in outputs:
-        print(output)
+    p.imap(doFunc, funList)
+
+    # outputs = p.imap(doFunc, funList)
+    # for output in outputs:
+    #     print(output)
