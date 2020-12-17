@@ -1,13 +1,41 @@
-from models import SocialSpiderOptimization
 from optproblems import cec2005
 from os import makedirs
 import statistics
 import csv
-import sys
+import argparse
 import numpy as np
+import sys
 sys.path.append("../cec2014/python") # Fedora
 # sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python") # Windows
 import cec2014
+
+parser = argparse.ArgumentParser(description="Run experiments with an algorithm specified in the input.")
+parser.add_argument("--algorithm", dest='algorithm', help="Name of the algorithm (can be ACO, ABC, DE, GA, AGA, PSO, RegPSO or SSO).")
+algorithm = parser.parse_args(sys.argv[1:]).algorithm.upper()
+
+if algorithm == "ACO":
+    from models import AntColonyOptimization
+
+if algorithm == "ABC":
+    from models import ArtificialBeeColony
+
+if algorithm == "DE":
+    from models import DifferentialEvolution
+
+if algorithm == "GA":
+    from models import GeneticAlgorithm
+
+if algorithm == "AGA":
+    from models import AdaptiveGA
+
+if algorithm == "PSO":
+    from models import ParticleSwarmOptimization
+
+if algorithm == "REGPSO":
+    from models import RegPSO
+
+if algorithm == "SSO":
+    from models import SocialSpiderOptimization
 
 def F1(arr):
     return cec2014.cec14(np.array(arr), 1)
@@ -41,12 +69,12 @@ if __name__ == '__main__':
     numRuns = 25
 
     # Creating result path
-    pathName = "Results/SSO"
+    pathName = "Results/" + algorithm
     makedirs(pathName, exist_ok=True)
 
     # Initializing result files
 
-    tableFileName = pathName + "/SSO_" + str(dims) + "D.csv"
+    tableFileName = pathName + "/" + algorithm + "_" + str(dims) + "D.csv"
 
     with open(tableFileName, "w") as resultsFile:
 
@@ -55,9 +83,9 @@ if __name__ == '__main__':
         writer.writerow( ["Fi_10D", "Best", "Worst", "Median", "Mean", "Std_Dev", "Success_Rate"] )
 
 
-    for i in funIndexes:
+    for i in range(len(functions)):
 
-        plotFileName = pathName + "/SSO_F" + str(i+1) + "_" + str(dims) + "D_Plot.csv"
+        plotFileName = pathName + "/" + algorithm + "_F" + str(funIndexes[i]) + "_" + str(dims) + "D_Plot.csv"
 
         with open(plotFileName, "w") as resultsFile:
 
@@ -69,7 +97,7 @@ if __name__ == '__main__':
 
             writer.writerow( header )
 
-        bestPlotFileName = pathName + "/SSO_F" + str(i+1) + "_" + str(dims) + "D_BestPlot.csv"
+        bestPlotFileName = pathName + "/" + algorithm + "_F" + str(funIndexes[i]) + "_" + str(dims) + "D_BestPlot.csv"
 
         with open(bestPlotFileName, "w") as resultsFile:
 
@@ -77,7 +105,7 @@ if __name__ == '__main__':
             header = ["FES_Multiplier", "Error"]
             writer.writerow( header )
 
-        worstPlotFileName = pathName + "/SSO_F" + str(i+1) + "_" + str(dims) + "D_WorstPlot.csv"
+        worstPlotFileName = pathName + "/" + algorithm + "_F" + str(funIndexes[i]) + "_" + str(dims) + "D_WorstPlot.csv"
 
         with open(worstPlotFileName, "w") as resultsFile:
 
@@ -92,16 +120,49 @@ if __name__ == '__main__':
 
         for j in range(numRuns):
 
-            SSO = SocialSpiderOptimization(functions[i], bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=optimums[i]) # F5: -310 / others: -450
+            if algorithm == "ACO":
+                model = AntColonyOptimization(functions[i], bounds, numAnts=2, optimum=optimums[i])
+
+            if algorithm == "ABC":
+                ABC = ArtificialBeeColony(functions[i], bounds, popSize=50, workerOnlookerSplit=0.5, limit=None, numScouts=1, optimum=optimums[i])
+
+            if algorithm == "DE":
+                model = DifferentialEvolution(functions[i], bounds, optimum = optimums[i])
+                model.setMutation(model.classicMutation, ("rand", 0.5, 1)) # base, F, nDiffs
+                model.setCrossover(model.classicCrossover, ("bin", 0.5)) # type, CR
+
+            if algorithm == "GA":
+                model = GeneticAlgorithm(functions[i], bounds, crit="min", optimum=optimums[i], tol=1e-08, eliteSize=0, matingPoolSize=100, popSize=100)
+                model.setParentSelection(model.tournamentSelection, (True,) )
+                model.setCrossover(model.blxAlphaCrossover, (0.5, 1)) # alpha, prob
+                model.setMutation(model.uniformMutation, (0.05, )) # prob, mean, sigma
+                model.setNewPopSelection(model.genitor, None)
+
+            if algorithm == "AGA":
+                model = AdaptiveGA(functions[i], bounds, crit="min", optimum=optimums[i], tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05)
+                model.setParentSelection(model.tournamentSelection, (True,) )
+                model.setCrossover(model.blxAlphaCrossover, (0.5, 1)) # alpha, prob
+                model.setMutation(model.adaptiveCreepMutation, (1,)) # prob
+                model.setNewPopSelection(model.genitor, None)
+
+            if algorithm == "PSO":
+                model = ParticleSwarmOptimization(functions[i], bounds, popSize=80, globalWeight=2.05, localWeight=2.05, clerkK=False, inertiaDecay=True, optimum=optimums[i])
+
+            if algorithm == "REGPSO":
+                model = RegPSO(functions[i], bounds, popSize=80, clerkK=False, inertiaDecay=True, optimum=optimums[i], prematureThreshold=1.1e-06)
+
+            if algorithm == "SSO":
+                model = SocialSpiderOptimization(functions[i], bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=optimums[i])
+
             #compare normalizing and non-normalizing
             #compare populations of 20, 30 and 50
-            SSO.execute()
-            results = SSO.results
+            model.execute()
+            results = model.results
 
             # Treating results
 
             errors.append(results["errors"][-1])
-            successes.append( int(results["errors"][-1] <= SSO.tol) )
+            successes.append( int(results["errors"][-1] <= model.tol) )
             # True/False values of successes are converted to int, to fetch the mean (success rate)
 
             # getting errors for different FES values
@@ -119,7 +180,7 @@ if __name__ == '__main__':
                     currentFES = results["FESCounts"][m]
 
                     # FES value coincides with the threshold or has surpassed it
-                    if(currentFES >= FESThresholds[k] * SSO.maxFES):
+                    if(currentFES >= FESThresholds[k] * model.maxFES):
                         FESThresholdErrors.append(results["errors"][m])
                         l = k + 1
                         break
@@ -143,7 +204,7 @@ if __name__ == '__main__':
 
             writer = csv.writer(resultsFile, delimiter = ',')
 
-            writer.writerow( [str(i+1), min(errors), max(errors), statistics.median(errors),
+            writer.writerow( [str(funIndexes[i]), min(errors), max(errors), statistics.median(errors),
             statistics.mean(errors), statistics.stdev(errors), statistics.mean(successes)] )
             # statistics.mean(successes) works, even if it is a list of bools
 
