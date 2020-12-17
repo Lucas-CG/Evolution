@@ -365,23 +365,23 @@ if __name__ == '__main__':
     import time
     from optproblems import cec2005
     # np.seterr("raise") # any calculation error immediately stops the execution
-    dims = 10
-
-    bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ] # 10-dimensional sphere (optimum: 0)
-
-    start = time.time()
-
-    # Initialization
-    ACO = AntColonyOptimization(cec2005.F2(dims), bounds, optimum=-450) # F5: -310 / others: -450
-    ACO.execute()
-    results = ACO.results
-
-    print("ACO: for criterion = " + ACO.crit + ", reached optimum of " + str(results["bestFits"][-1]) +
-    " (error of " + str(results["errors"][-1]) + ") (points " + str(results["bestPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
-    " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
-
-    end = time.time()
-    print("time:" + str(end - start))
+    # dims = 10
+    #
+    # bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ] # 10-dimensional sphere (optimum: 0)
+    #
+    # start = time.time()
+    #
+    # # Initialization
+    # ACO = AntColonyOptimization(cec2005.F2(dims), bounds, optimum=-450) # F5: -310 / others: -450
+    # ACO.execute()
+    # results = ACO.results
+    #
+    # print("ACO: for criterion = " + ACO.crit + ", reached optimum of " + str(results["bestFits"][-1]) +
+    # " (error of " + str(results["errors"][-1]) + ") (points " + str(results["bestPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    # " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
+    #
+    # end = time.time()
+    # print("time:" + str(end - start))
 
     import sys
     sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python")
@@ -397,7 +397,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    ACO = AntColonyOptimization(func, bounds, numAnts=40, archiveSize=100, optimum=100) # F5: -310 / others: -450
+    ACO = AntColonyOptimization(func, bounds, numAnts=2, archiveSize=30, optimum=100) # F5: -310 / others: -450
     ACO.execute()
     results = ACO.results
 

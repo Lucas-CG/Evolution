@@ -387,14 +387,13 @@ if __name__ == '__main__':
     def func(arr):
         return cec2014.cec14(arr, 1)
 
-
-    bounds = [ [-100 for i in range(30)], [100 for i in range(30)] ] # 10-dimensional sphere (optimum: 0)
+    bounds = [ [-100 for i in range(30)], [100 for i in range(30)] ]
 
     start = time.time()
 
     # Initialization
     DE = DifferentialEvolution(func, bounds, optimum=100)
-    DE.setMutation(DE.classicMutation, ("rand", 0.5, 2)) # base, F, nDiffs
+    DE.setMutation(DE.classicMutation, ("rand", 0.5, 1)) # base, F, nDiffs
     DE.setCrossover(DE.classicCrossover, ("bin", 0.5)) # type, CR
     DE.execute()
     results = DE.results

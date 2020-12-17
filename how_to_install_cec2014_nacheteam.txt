@@ -1,6 +1,17 @@
 1) Use Debian
 2) git clone https://github.com/nacheteam/cec2014
-3) make debian install && make build
+3) If using Debian: make debian install && make build
+
+If using Fedora:
+pip3 install Cython
+python3 install python3-devel
+make build (it will fail)
+Run the following compilation commands:
+
+g++ -pthread -Wno-unused-result -Wsign-compare -DDYNAMIC_ANNOTATIONS_ENABLED=1 -DNDEBUG -O2 -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -D_GNU_SOURCE -fPIC -fwrapv -O2 -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -D_GNU_SOURCE -fPIC -fwrapv -O2 -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-D_FORTIFY_SOURCE=2 -Wp,-D_GLIBCXX_ASSERTIONS -fstack-protector-strong -m64 -mtune=generic -fasynchronous-unwind-tables -fstack-clash-protection -D_GNU_SOURCE -fPIC -fwrapv -fPIC -I/usr/lib64/python3.9/site-packages/numpy/core/include -I/usr/include/python3.9 -Xlinker -zmuldefs -c cec2014.c -o build/temp.linux-x86_64-3.9/cec2014.o
+
+g++ -pthread -shared -Wl,-z,relro -Wl,--as-needed -Wl,-z,now -g -Wl,-z,relro -Wl,--as-needed -Wl,-z,now -g build/temp.linux-x86_64-3.9/cec2014.o build/temp.linux-x86_64-3.9/cec2014_func.o -L/usr/lib64 -Xlinker -zmuldefs -o /home/lucas/git/cec2014/python/cec2014.cpython-39-x86_64-linux-gnu.so
+
 4) Add the folder cec2014_data to the local execution directory, else it will produce a segmentation fault
 5)  In Python:
     import sys

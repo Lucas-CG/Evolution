@@ -142,6 +142,8 @@ class RegPSO(object):
                     "minPoints": minPoints,
                     "avgFits": avgFits}
 
+                print(metrics["error"])
+
                 self.calculateSwarmRadius()
 
                 if self.swarmRadius < self.prematureThreshold:
@@ -292,7 +294,7 @@ class RegPSO(object):
 
         newRange = self.regroupingFactor * maxDists
 
-        for i in range(self.popSize):
+        for i in range( int(0.5 * self.popSize) ):
 
             randomVec = np.zeros(self.dimensions)
 
@@ -310,18 +312,41 @@ if __name__ == '__main__':
     # Test of the PSO's performance over CEC2005's F1 (shifted sphere)
 
     import time
-    from optproblems import cec2005
+    # from optproblems import cec2005
+    #
+    # bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
+    #
+    # start = time.time()
+    #
+    # # Initialization
+    # PSO = RegPSO(cec2005.F4(10), bounds, popSize=50, clerkK=False, inertiaDecay=True)
+    # PSO.execute()
+    # results = PSO.results
+    #
+    # print("PSO: for criterion = " + PSO.crit + ", reached optimum of " + str(results["minFits"][-1]) +
+    # " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    # " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
+    #
+    # end = time.time()
+    # print("time:" + str(end - start))
+
+    import sys
+    sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python")
+    import cec2014
+
+    def func(arr):
+        return cec2014.cec14(arr, 1)
 
     bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
 
     start = time.time()
 
     # Initialization
-    PSO = RegPSO(cec2005.F4(10), bounds, popSize=50, clerkK=False, inertiaDecay=True)
+    PSO = RegPSO(func, bounds, popSize=50, clerkK=False, inertiaDecay=True, optimum=100, prematureThreshold=1.1e-06)
     PSO.execute()
     results = PSO.results
 
-    print("PSO: for criterion = " + PSO.crit + ", reached optimum of " + str(results["minFits"][-1]) +
+    print("RegPSO: for criterion = " + PSO.crit + ", reached optimum of " + str(results["minFits"][-1]) +
     " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
     " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
 

@@ -499,8 +499,36 @@ if __name__ == '__main__':
     # Test of the SSO's performance over CEC2005's F1 (shifted sphere)
 
     import time
-    from optproblems import cec2005
-    # np.seterr("raise") # any calculation error immediately stops the execution
+    # from optproblems import cec2005
+    # # np.seterr("raise") # any calculation error immediately stops the execution
+    # dims = 10
+    #
+    # bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ] # 10-dimensional sphere (optimum: 0)
+    #
+    # start = time.time()
+    #
+    # # Initialization
+    # SSO = SocialSpiderOptimization(cec2005.F1(dims), bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=-450) # F5: -310 / others: -450
+    # #compare normalizing and non-normalizing
+    # #compare populations of 20, 30 and 50
+    # SSO.execute()
+    # results = SSO.results
+    #
+    # print("SSO: for criterion = " + SSO.crit + ", reached optimum of " + str(results["bestFits"][-1]) +
+    # " (error of " + str(results["errors"][-1]) + ") (points " + str(results["bestPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    # " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
+    #
+    # end = time.time()
+    # print("time:" + str(end - start))
+
+
+    import sys
+    sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python")
+    import cec2014
+
+    def func(arr):
+        return cec2014.cec14(arr, 1)
+
     dims = 10
 
     bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ] # 10-dimensional sphere (optimum: 0)
@@ -508,7 +536,7 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    SSO = SocialSpiderOptimization(cec2005.F1(dims), bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=-450) # F5: -310 / others: -450
+    SSO = SocialSpiderOptimization(func, bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=100) # F5: -310 / others: -450
     #compare normalizing and non-normalizing
     #compare populations of 20, 30 and 50
     SSO.execute()
