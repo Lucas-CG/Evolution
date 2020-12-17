@@ -6,8 +6,8 @@ import locale
 
 funIndexes = [1, 2, 4, 6, 7, 9, 14]
 colors = ["black", "royalblue", "brown", "gold", "lawngreen", "purple", "orangered", "deeppink"]
-# algorithms = ["ABC", "ACO", "AGA", "DE", "GA", "PSO", "RegPSO", "SSO"]
-algorithms = ["ABC", "ACO", "AGA", "DE", "GA", "PSO", "SSO"]
+algorithms = ["ABC", "ACO", "AGA", "DE", "GA", "PSO", "RegPSO", "SSO"]
+# algorithms = ["ABC", "ACO", "AGA", "DE", "GA", "PSO", "SSO"]
 
 meanFES = {}
 meanErrors = {}
