@@ -124,6 +124,7 @@ if __name__ == '__main__':
         FESResults = []
 
         queue = mp.Queue()
+        processes = []
 
         for j in range(numRuns):
 
@@ -133,11 +134,13 @@ if __name__ == '__main__':
                 model = AntColonyOptimization(functions[i], bounds, numAnts=2, optimum=optimums[i])
                 p = mp.Process(target=runModel, args=(model, queue,))
                 p.start()
+                processes.append(p)
 
             if algorithm == "ABC":
                 model = ArtificialBeeColony(functions[i], bounds, popSize=50, workerOnlookerSplit=0.5, limit=None, numScouts=1, optimum=optimums[i])
                 p = mp.Process(target=runModel, args=(model, queue,))
                 p.start()
+                processes.append(p)
 
             if algorithm == "DE":
                 model = DifferentialEvolution(functions[i], bounds, optimum = optimums[i])
@@ -145,6 +148,7 @@ if __name__ == '__main__':
                 model.setCrossover(model.classicCrossover, ("bin", 0.5)) # type, CR
                 p = mp.Process(target=runModel, args=(model, queue,))
                 p.start()
+                processes.append(p)
 
             if algorithm == "GA":
                 model = GeneticAlgorithm(functions[i], bounds, crit="min", optimum=optimums[i], tol=1e-08, eliteSize=0, matingPoolSize=100, popSize=100)
@@ -154,6 +158,7 @@ if __name__ == '__main__':
                 model.setNewPopSelection(model.genitor, None)
                 p = mp.Process(target=runModel, args=(model, queue,))
                 p.start()
+                processes.append(p)
 
             if algorithm == "AGA":
                 model = AdaptiveGA(functions[i], bounds, crit="min", optimum=optimums[i], tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05)
@@ -163,21 +168,27 @@ if __name__ == '__main__':
                 model.setNewPopSelection(model.genitor, None)
                 p = mp.Process(target=runModel, args=(model, queue,))
                 p.start()
+                processes.append(p)
 
             if algorithm == "PSO":
                 model = ParticleSwarmOptimization(functions[i], bounds, popSize=80, globalWeight=2.05, localWeight=2.05, clerkK=False, inertiaDecay=True, optimum=optimums[i])
                 p = mp.Process(target=runModel, args=(model, queue,))
                 p.start()
+                processes.append(p)
 
             if algorithm == "REGPSO":
                 model = RegPSO(functions[i], bounds, popSize=80, clerkK=False, inertiaDecay=True, optimum=optimums[i], prematureThreshold=1.1e-06)
                 p = mp.Process(target=runModel, args=(model, queue,))
                 p.start()
+                processes.append(p)
 
             if algorithm == "SSO":
                 model = SocialSpiderOptimization(functions[i], bounds, popSize=30, PF=0.7, normalizeDistances=True, optimum=optimums[i])
                 p = mp.Process(target=runModel, args=(model, queue,))
                 p.start()
+                processes.append(p)
+
+        for process in processes: process.join()
 
         for j in range(numRuns):
 
