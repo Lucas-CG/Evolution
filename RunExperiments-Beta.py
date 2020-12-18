@@ -38,4 +38,5 @@ if __name__ == "__main__":
     # for output in outputs:
     #     print(output)
 
+    runSSO()
     runACO()

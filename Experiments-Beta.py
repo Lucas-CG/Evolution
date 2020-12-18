@@ -131,7 +131,7 @@ if __name__ == '__main__':
             results = None
 
             if algorithm == "ACO":
-                model = AntColonyOptimization(functions[i], bounds, numAnts=2, optimum=optimums[i])
+                model = AntColonyOptimization(functions[i], bounds, archiveSize=30, numAnts=2, optimum=optimums[i])
                 p = mp.Process(target=runModel, args=(model, queue,))
                 p.start()
                 processes.append(p)
@@ -188,7 +188,12 @@ if __name__ == '__main__':
                 p.start()
                 processes.append(p)
 
+            if (j == 7 or j == 15 or j == 24):
+                for process in processes: process.join()
+                for process in processes: process.terminate()
+
         for process in processes: process.join()
+        for process in processes: process.terminate()
 
         for j in range(numRuns):
 
