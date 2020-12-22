@@ -468,8 +468,8 @@ class AdaptiveGA(object):
                 children.append(child)
 
             else: #if it is not executed, the parent with the best fitness is given as a child
-                if self.crit == "min": children.append(parent1) if parent1[1] <= parent2[1] else children.append(parent2) # compara valores de f. escolhe o de menor aptidão
-                else: children.append(parent1) if parent1[1] >= parent2[1] else children.append(parent2) # compara valores de f. escolhe o de menor aptidão
+                if self.crit == "min": children.append(parents[0]) if parents[0][1] <= parents[1][1] else children.append(parents[1]) # compara valores de f. escolhe o de menor aptidão
+                else: children.append(parents[0]) if parents[0][1] >= parents[1][1] else children.append(parents[1]) # compara valores de f. escolhe o de menor aptidão
 
         self.children = children
 
@@ -521,8 +521,8 @@ class AdaptiveGA(object):
                 children.append(child)
 
             else: #if it is not executed, the parent with the best fitness is given as a child
-                if self.crit == "min": children.append(parent1) if parent1[1] <= parent2[1] else children.append(parent2) # compara valores de f. escolhe o de menor aptidão
-                else: children.append(parent1) if parent1[1] >= parent2[1] else children.append(parent2) # compara valores de f. escolhe o de menor aptidão
+                if self.crit == "min": children.append(parents[0]) if parents[0][1] <= parents[1][1] else children.append(parents[1]) # compara valores de f. escolhe o de menor aptidão
+                else: children.append(parents[0]) if parents[0][1] >= parents[1][1] else children.append(parents[1]) # compara valores de f. escolhe o de menor aptidão
 
         self.children = children
 
@@ -582,13 +582,13 @@ if __name__ == '__main__':
 
     # Initialization
     # AGA = AdaptiveGA(cec2005.F1(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05)
-    AGA = AdaptiveGA(cec2005.F4(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, numChildren=200, matingPoolSize=30, popSize=30, adaptiveEpsilon=1e-05)
+    AGA = AdaptiveGA(cec2005.F5(10), bounds, crit="min", optimum=-310, tol=1e-08, eliteSize=1, numChildren=200, matingPoolSize=30, popSize=30, adaptiveEpsilon=1e-05)
 
     AGA.setParentSelection(AGA.noParentSelection, None )
     # AGA.setParentSelection(AGA.tournamentSelection, (True,) )
     # AGA.setCrossover(AGA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
-    AGA.setCrossover(AGA.discreteCrossover, (1,)) # alpha, prob
-    # AGA.setCrossover(AGA.intermediateCrossover, (1,)) # alpha, prob
+    AGA.setCrossover(AGA.discreteCrossover, (1,)) # prob
+    # AGA.setCrossover(AGA.intermediateCrossover, (1,)) # prob
     # AGA.setCrossover(AGA.noCrossover, None)
     AGA.setMutation(AGA.adaptiveCreepMutation, (1,)) # prob
     # AGA.setNewPopSelection(AGA.genitor, None)
