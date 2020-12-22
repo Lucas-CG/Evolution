@@ -10,7 +10,7 @@ class MaxFESReached(Exception):
 class AdaptiveGA(object):
     """Implements a real-valued Genetic Algorithm, with adaptive parameters for creep mutation."""
 
-    def __init__(self, func, bounds, popSize=100, crit="min", eliteSize=0, matingPoolSize=100, adaptiveEpsilon=0.1, optimum=-450, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=100, crit="min", eliteSize=0, matingPoolSize=100, numChildren=100, adaptiveEpsilon=0.1, optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function name (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
@@ -34,6 +34,7 @@ class AdaptiveGA(object):
         self.optimum = optimum
         self.tol = tol
         self.matingPoolSize = matingPoolSize
+        self.numChildren = numChildren
         self.adaptiveEpsilon = adaptiveEpsilon
 
         if(maxFES): self.maxFES = maxFES
@@ -165,7 +166,7 @@ class AdaptiveGA(object):
                     "minPoints": minPoints,
                     "avgFits": avgFits}
 
-                # print(metrics["error"])
+                print(metrics["error"])
 
         except KeyboardInterrupt:
             return
@@ -334,6 +335,9 @@ class AdaptiveGA(object):
 
             self.elite = elite
 
+    def noParentSelection(self):
+        self.matingPool = self.pop
+
     def tournamentSelection(self, crossover = True):
         # use with matingPool for parent selection
         # use with pop for post-crossover selection (non-generational selection schemes)
@@ -371,7 +375,7 @@ class AdaptiveGA(object):
 
         children = []
 
-        for i in range(self.popSize):
+        for i in range(self.numChildren):
 
             positions = np.random.randint(0, len(self.matingPool), 2)
             parent1, parent2 = self.matingPool[positions[0]], self.matingPool[positions[1]]
@@ -398,10 +402,8 @@ class AdaptiveGA(object):
 
                             if(gene < self.adaptiveEpsilon):
                                 gene = self.adaptiveEpsilon
-                                genes.append(gene)
 
-                            else:
-                                genes.append(gene)
+                            genes.append(gene)
 
                             break
 
@@ -418,15 +420,124 @@ class AdaptiveGA(object):
 
         self.children = children
 
+    def discreteCrossover(self, crossProb=1):
+        if not self.matingPool:
+            raise ValueError("There is no mating pool. Execute a selection function for it first.")
+
+        children = []
+
+        for i in range(self.numChildren):
+
+            positions = np.random.randint(0, len(self.matingPool), 2)
+            parents = [ self.matingPool[positions[0]], self.matingPool[positions[1]] ]
+
+            if (np.random.uniform(0, 1) < crossProb): # crossover executed with probability crossProb
+
+                child = []
+                genes = []
+
+                for j in range( len(parents[0][0]) ): # iterate through its genes
+
+                    while True:
+
+                        if (j < self.dimensions):
+
+                            gene = parents[np.random.randint(0, 2)][0][j]
+
+                            if( self.bounds[0][j] <= gene <= self.bounds[1][j] ):
+                                genes.append(gene)
+                                break
+                                #Fora dos limites? Refazer.
+
+                        else:
+
+                            gene = (parents[0][0][j] + parents[1][0][j])/2 # indexes: parent, genotype, gene
+
+                            if(gene < self.adaptiveEpsilon):
+                                gene = self.adaptiveEpsilon
+
+                            genes.append(gene)
+
+                            break
+
+                child.append(genes)
+                child.append(self.func(np.array(genes[:self.dimensions])))
+                self.FES += 1
+                if self.FES == self.maxFES: raise MaxFESReached
+
+                children.append(child)
+
+            else: #if it is not executed, the parent with the best fitness is given as a child
+                if self.crit == "min": children.append(parent1) if parent1[1] <= parent2[1] else children.append(parent2) # compara valores de f. escolhe o de menor aptidão
+                else: children.append(parent1) if parent1[1] >= parent2[1] else children.append(parent2) # compara valores de f. escolhe o de menor aptidão
+
+        self.children = children
+
+    def intermediateCrossover(self, crossProb=1):
+        if not self.matingPool:
+            raise ValueError("There is no mating pool. Execute a selection function for it first.")
+
+        children = []
+
+        for i in range(self.numChildren):
+
+            positions = np.random.randint(0, len(self.matingPool), 2)
+            parents = [ self.matingPool[positions[0]], self.matingPool[positions[1]] ]
+
+            if (np.random.uniform(0, 1) < crossProb): # crossover executed with probability crossProb
+
+                child = []
+                genes = []
+
+                for j in range( len(parents[0][0]) ): # iterate through its genes
+
+                    while True:
+
+                        if (j < self.dimensions):
+
+                            gene = (parents[0][0][j] + parents[1][0][j])/2 # indexes: parent, genotype, gene
+
+                            if( self.bounds[0][j] <= gene <= self.bounds[1][j] ):
+                                genes.append(gene)
+                                break
+                                #Fora dos limites? Refazer.
+
+                        else:
+
+                            gene = (parents[0][0][j] + parents[1][0][j])/2 # indexes: parent, genotype, gene
+
+                            if(gene < self.adaptiveEpsilon):
+                                gene = self.adaptiveEpsilon
+
+                            genes.append(gene)
+
+                            break
+
+                child.append(genes)
+                child.append(self.func(np.array(genes[:self.dimensions])))
+                self.FES += 1
+                if self.FES == self.maxFES: raise MaxFESReached
+
+                children.append(child)
+
+            else: #if it is not executed, the parent with the best fitness is given as a child
+                if self.crit == "min": children.append(parent1) if parent1[1] <= parent2[1] else children.append(parent2) # compara valores de f. escolhe o de menor aptidão
+                else: children.append(parent1) if parent1[1] >= parent2[1] else children.append(parent2) # compara valores de f. escolhe o de menor aptidão
+
+        self.children = children
+
+    def noCrossover(self):
+        self.children = self.matingPool
+
     def generationalSelection(self):
 
+        if self.crit == "max":
+            self.children.sort(key = getSecond, reverse = True) # ordena pelo valor de f em ordem decrescente
+
+        else:
+            self.children.sort(key = getSecond, reverse = False) # ordena pelo valor de f em ordem crescente
+
         if self.eliteSize > 0:
-
-            if self.crit == "max":
-                self.children.sort(key = getSecond, reverse = True) # ordena pelo valor de f em ordem decrescente
-
-            else:
-                self.children.sort(key = getSecond, reverse = False) # ordena pelo valor de f em ordem crescente
 
             newPop = []
             newPop.extend(self.elite)
@@ -434,7 +545,12 @@ class AdaptiveGA(object):
             self.pop = newPop[:self.popSize] # cutting out the worst individuals
 
         else:
-            self.pop = self.children
+
+            if(self.numChildren < self.popSize):
+                raise ValueError("There are fewer children than the population size. Please raise the number of children, in order to keep a constant population size.")
+            newPop = []
+            newPop.extend(self.children)
+            self.pop = newPop[:self.popSize]
 
     def genitor(self):
         #excludes the worst individuals
@@ -465,12 +581,19 @@ if __name__ == '__main__':
     start = time.time()
 
     # Initialization
-    AGA = AdaptiveGA(cec2005.F1(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05)
+    # AGA = AdaptiveGA(cec2005.F1(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05)
+    AGA = AdaptiveGA(cec2005.F4(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, numChildren=200, matingPoolSize=30, popSize=30, adaptiveEpsilon=1e-05)
 
-    AGA.setParentSelection(AGA.tournamentSelection, (True,) )
-    AGA.setCrossover(AGA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
+    AGA.setParentSelection(AGA.noParentSelection, None )
+    # AGA.setParentSelection(AGA.tournamentSelection, (True,) )
+    # AGA.setCrossover(AGA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
+    AGA.setCrossover(AGA.discreteCrossover, (1,)) # alpha, prob
+    # AGA.setCrossover(AGA.intermediateCrossover, (1,)) # alpha, prob
+    # AGA.setCrossover(AGA.noCrossover, None)
     AGA.setMutation(AGA.adaptiveCreepMutation, (1,)) # prob
-    AGA.setNewPopSelection(AGA.genitor, None)
+    # AGA.setNewPopSelection(AGA.genitor, None)
+    AGA.setNewPopSelection(AGA.generationalSelection, None)
+    # AGA.setNewPopSelection(AGA.tournamentSelection, None)
     AGA.execute()
     results = AGA.results
 
@@ -482,31 +605,31 @@ if __name__ == '__main__':
     print("time:" + str(end - start))
 
 
-    import sys
-    sys.path.append("../../cec2014/python") # Fedora
-    # sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python") # Windows
-    import cec2014
-
-    def func(arr):
-        return cec2014.cec14(arr, 1)
-
-    bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
-
-    start = time.time()
-
-    # Initialization
-    AGA = AdaptiveGA(func, bounds, crit="min", optimum=100, tol=1e-08, eliteSize=0, matingPoolSize=100, popSize=200, adaptiveEpsilon=1e-05)
-
-    AGA.setParentSelection(AGA.tournamentSelection, (True,) )
-    AGA.setCrossover(AGA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
-    AGA.setMutation(AGA.adaptiveCreepMutation, (1,)) # prob
-    AGA.setNewPopSelection(AGA.genitor, None)
-    AGA.execute()
-    results = AGA.results
-
-    print("AGA: for criterion = " + AGA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
-    " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
-    " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
-
-    end = time.time()
-    print("time:" + str(end - start))
+    # import sys
+    # sys.path.append("../../cec2014/python") # Fedora
+    # # sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python") # Windows
+    # import cec2014
+    #
+    # def func(arr):
+    #     return cec2014.cec14(arr, 1)
+    #
+    # bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
+    #
+    # start = time.time()
+    #
+    # # Initialization
+    # AGA = AdaptiveGA(func, bounds, crit="min", optimum=100, tol=1e-08, eliteSize=0, numChildren=200, matingPoolSize=50, popSize=100, adaptiveEpsilon=1e-05)
+    #
+    # AGA.setParentSelection(AGA.tournamentSelection, (True,) )
+    # AGA.setCrossover(AGA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
+    # AGA.setMutation(AGA.adaptiveCreepMutation, (1,)) # prob
+    # AGA.setNewPopSelection(AGA.genitor, None)
+    # AGA.execute()
+    # results = AGA.results
+    #
+    # print("AGA: for criterion = " + AGA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
+    # " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    # " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
+    #
+    # end = time.time()
+    # print("time:" + str(end - start))
