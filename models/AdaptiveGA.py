@@ -582,7 +582,7 @@ if __name__ == '__main__':
 
     # Initialization
     # AGA = AdaptiveGA(cec2005.F1(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05)
-    AGA = AdaptiveGA(cec2005.F5(10), bounds, crit="min", optimum=-310, tol=1e-08, eliteSize=1, numChildren=200, matingPoolSize=30, popSize=30, adaptiveEpsilon=1e-05)
+    AGA = AdaptiveGA(cec2005.F4(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, numChildren=150, matingPoolSize=30, popSize=30, adaptiveEpsilon=1e-05)
 
     AGA.setParentSelection(AGA.noParentSelection, None )
     # AGA.setParentSelection(AGA.tournamentSelection, (True,) )
