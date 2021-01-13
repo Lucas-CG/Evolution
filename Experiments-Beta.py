@@ -11,7 +11,7 @@ import cec2014
 import multiprocessing as mp
 
 parser = argparse.ArgumentParser(description="Run experiments with an algorithm specified in the input.")
-parser.add_argument("--algorithm", dest='algorithm', help="Name of the algorithm (can be ACO, ABC, DE, GA, AGA, PSO, RegPSO or SSO).")
+parser.add_argument("--algorithm", dest='algorithm', help="Name of the algorithm (can be ACO, ABC, DE, GA, AGA, PSO, RegPSO, SSO or CMA-ES).")
 algorithm = parser.parse_args(sys.argv[1:]).algorithm.upper()
 
 if algorithm == "ACO":
@@ -37,6 +37,9 @@ if algorithm == "REGPSO":
 
 if algorithm == "SSO":
     from models import SocialSpiderOptimization
+
+if algorithm == "CMA-ES":
+    from models import CMAES
 
 def F1(arr):
     return cec2014.cec14(np.array(arr), 1)

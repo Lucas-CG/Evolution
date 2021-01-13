@@ -1,6 +1,5 @@
 import numpy as np
 from time import sleep
-import sys
 
 def getFirst(ind):
     return ind[0]
@@ -12,11 +11,18 @@ class MaxFESReached(Exception):
 class CMAES(object):
     """Implements a real-valued CMA-ES (Covariance Matrix Adaptation Evolution Strategy)."""
 
-    def __init__(self, func, bounds, crit="min", equalWeights=False, optimum=0, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, crit="min", mu=None, lamb=None, equalWeights=False, cc=None, ccov=None, cs=None, ds=None, optimum=0, maxFES=None, tol=1e-08):
         """Initializes the algorithm. Arguments:
         - func: a function name (the optimization problem to be resolved).
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
         - crit: criterion ("min" or "max").
+        - mu: parent number: the best individuals selected at each generation.
+        - lamb: population size: generated individuals, which will be selected.
+        - equalWeights: bool: defines whether "stronger" individuals will have greater weights at the crossover.
+        - cc: present path's weight. Its inverse indicates this information's duration on the adaptation procedure.
+        - ccov: present covariance matrix's weight. Its inverse indicates this information's duration on the adaptation procedure.
+        - cs: present sigma/step size's weight. Its inverse indicates this information's duration on the adaptation procedure.
+        - ds: damping constant for adaptation of step sizes.
         - optimum: known optimum value for the objective function. Default is 0.
         - maxFES: maximum number of fitness evaluations.
         If set to None, will be calculated as 10000 * [number of dimensions] = 10000 * len(bounds)"""
@@ -32,43 +38,38 @@ class CMAES(object):
         self.bounds = bounds
         self.dimensions = len(self.bounds[0])
         self.crit = crit
+        self.mu = mu
+        self.lamb = lamb
         self.optimum = optimum
         self.tol = tol
         self.equalWeights = equalWeights
+        self.cc = cc
+        self.ccov = ccov
+        self.cs = cs
+        self.ds = ds
 
         if(maxFES): self.maxFES = maxFES
         else: self.maxFES = 10000 * len(bounds[0]) # 10000 x [dimensions]
 
-        self.lamb = 4 + int(3 * np.log(self.dimensions)) # note: np.log = ln
+        if(self.lamb == None): self.lamb = 4 + int(3 * np.log(self.dimensions)) # note: np.log = ln
 
-        self.mu = int(self.lamb/2)
+        if(self.mu == None): self.mu = int(0.5 * self.lamb)
 
         self.weights = []
-        self.weightSum = 0
-        self.posWeightSum = 0
-        self.negWeightSum = 0
 
-        self.weights = np.log( (self.lamb + 1) / 2 ) - np.array([ np.log(i + 1) for i in range(int(self.lamb) ) ]) # i+1: python is 0-indexed
-        self.mueff = np.power(np.sum(self.weights[:self.mu]), 2) / sum(np.power(w, 2) for w in self.weights[:self.mu]) # variance-effectiveness
-        self.negMueff = np.power(np.sum(self.weights[self.mu:]), 2) / sum(np.power(w, 2) for w in self.weights[self.mu:]) # complement
-        self.c1 = 2 / ( np.power((self.dimensions + 1.3), 2) + self.mueff ) # learning rate for rank-one update of C
-        self.cmu = min([1 - self.c1, 2 * (self.mueff - 2 + 1/self.mueff) / ((self.dimensions + 2)**2 + self.mueff)]) # and for rank-mu update
-        # weights can be negative too (active CMA; prevents complex numbers)
-        self.posWeightSum = np.sum(self.weights[:self.mu])
-        self.negWeightSum = abs(np.sum(self.weights[self.mu:])) # abs value
-        self.weightSum = self.posWeightSum + self.negWeightSum
-        negAlphaMu = 1 + (self.c1/self.cmu)
-        negAlphaMuEff = 1 + ( (2 * self.negMueff) / (self.mueff + 2) )
-        negAlphaPosDef = (1 - self.c1 - self.cmu) / (self.dimensions * self.cmu)
-        self.weights = np.array( [self.weights[i]/self.posWeightSum if i < self.mu else self.weights[i] * min([negAlphaMu, negAlphaMuEff, negAlphaPosDef]) / self.negWeightSum for i in range(self.lamb)] )
-        # positive weights converge to 1
+        if(self.equalWeights):
+            self.weights = np.ones(int(self.mu))
+
+        else:
+            self.weights = np.log( (self.lamb + 1) / 2 ) - np.array([ np.log(i + 1) for i in range(int(self.mu) ) ]) # i+1: python is 0-indexed
+            weightSum = np.sum(sum(self.weights))
+            self.weights = self.weights/weightSum # guarateeing that the sum is 1
 
         # Default CMA-ES parameter values
-        self.cc = (4 + self.mueff/self.dimensions) / (self.dimensions + 4 + 2 * self.mueff / self.dimensions) # weight of covariance path for adaptation; its inverse indicates its duration in the algorithm
-        self.cs = (self.mueff + 2) / (self.dimensions + self.mueff + 5) # weight of present sigma/stepsize for adaptation; its inverse indicates a sigma's duration in the algorithm
-        # self.ds = 2 * self.mueff/self.lamb + 0.3 + self.cs # damping constant for sigma adaptations # code
-        self.ds = 1 + 2 * max( [ 0, np.sqrt( (self.mueff - 1) / (self.dimensions + 1) ) - 1 ] ) + self.cs # damping constant for sigma adaptations # paper
-        self.ccov = 2 / np.power( ( self.dimensions + np.sqrt(2) ), 2) # weight of present covariance matrics for adaptation; its inverse indicates its duration in the algorithm
+        if self.cc == None: self.cc = 4 / (self.dimensions + 4) # weight of covariance path for adaptation; its inverse indicates its duration in the algorithm
+        if self.ccov == None: self.ccov = 2 / np.power( ( self.dimensions + np.sqrt(2) ), 2) # weight of present covariance matrics for adaptation; its inverse indicates its duration in the algorithm
+        if self.cs == None: self.cs = 4 / (self.dimensions + 4) # weight of present sigma/stepsize for adaptation; its inverse indicates a sigma's duration in the algorithm
+        if self.ds == None: self.ds = (1 / self.cs) + 1 # damping constant for sigma adaptations
 
         # start values
         self.B = np.eye(self.dimensions) # cov matrix decomposition
@@ -81,8 +82,7 @@ class CMAES(object):
         self.chiN = np.sqrt(self.dimensions) * ( 1.0 - (1.0 / 4 * self.dimensions) + ( 1.0 / 21 * np.power(self.dimensions, 2) ) )
 
         self.xmeanw = np.zeros(self.dimensions) # weighted mean of best solutions
-        self.weightedy = np.zeros(self.dimensions)
-        self.zmeanw = np.zeros(self.dimensions)
+        self.zmeanw = np.zeros(self.dimensions) # weighted mean of best solutions
         self.sigma = 60.0 # step size
         self.minSigma = 1e-15 # min step size
         self.fitness = np.array( [ (np.inf if self.crit == "min" else -np.inf) for i in range(int(self.lamb)) ] )
@@ -128,7 +128,6 @@ class CMAES(object):
 
                 # generating offspring
                 self.X = np.zeros((self.dimensions, int(self.lamb))) # offspring
-                self.Y = np.zeros((self.dimensions, int(self.lamb)))
                 self.Z = np.zeros((self.dimensions, int(self.lamb))) # random vectors, normally distributed
 
                 try:
@@ -138,15 +137,13 @@ class CMAES(object):
 
                         valid = False
                         z = None
-                        y = None
                         new_x = None
 
                         while not valid:
 
                             # column vectors
                             z = np.random.normal(0, 1, (self.dimensions, 1))
-                            y = self.sigma * ( np.matmul(self.BD, z) )
-                            new_x = self.xmeanw + np.transpose(y)[0]
+                            new_x = self.xmeanw + self.sigma * ( np.transpose(np.matmul(self.BD, z))[0] )
 
                             # bound checking
                             if not self.isInBounds(new_x): continue # repeats if bounds are broken
@@ -155,7 +152,6 @@ class CMAES(object):
 
                         # columns
                         self.X[:, k] = new_x
-                        self.Y[:, k] = np.transpose(y)[0]
                         self.Z[:, k] = np.transpose(z)[0]
 
                         # evaluating function value
@@ -184,41 +180,19 @@ class CMAES(object):
                 self.rankingIndexes = np.array([ sortFitness[i][1] for i in range(int(self.lamb)) ])
                 del sortFitness
 
-                xold = self.xmeanw
-
-                print(self.fitness)
-
                 # calculating weighted means
-                self.xmeanw = sum( [ self.X[:, self.rankingIndexes[i]] * self.weights[i] for i in range(int(self.mu)) ] )
-                self.zmeanw = sum( [ self.Z[:, self.rankingIndexes[i]] * self.weights[i] for i in range(int(self.mu)) ] )
-
-                yilamb = np.zeros((self.dimensions, self.lamb))
-
-                for i in range(self.lamb): yilamb[:, i] = (self.X[:, i] - self.xmeanw) / self.sigma
-                self.yilambmean = sum( [ yilamb[:, self.rankingIndexes[i]] * self.weights[i] for i in range(int(self.mu)) ] )
-
-                y = self.xmeanw - xold
-                z = np.matmul( np.matmul( self.B, np.matmul(np.linalg.inv(self.D), np.transpose(self.B)) ), y) # C^(-1/2) (= B * D^(-1) * B^T) * y
-                csn = np.sqrt( self.cs * (2 - self.cs) * self.mueff ) / self.sigma
-
-                # sigma path
-                self.ps = (1 - self.cs) * self.ps + csn * z
-
-                # adapting sigma
-                self.sigma = self.sigma * np.exp( (self.cs/self.ds) * ( ( (np.linalg.norm(self.ps)) / self.chiN ) - 1 ) )
-
-                hs = 1 if ( (np.linalg.norm(self.ps)) / np.sqrt(1 - (1-self.cs)**(2 * (self.genCount + 1) ) ) ) < ( 1.4 + (2 / ( self.dimensions + 1 ) ) ) * self.chiN else 0
+                self.xmeanw = sum( [ self.X[:, self.rankingIndexes[i]] * self.weights[i] for i in range(int(self.mu)) ] ) / sum(self.weights)
+                self.zmeanw = sum( [ self.Z[:, self.rankingIndexes[i]] * self.weights[i] for i in range(int(self.mu)) ] ) / sum(self.weights)
 
                 # adapting covariance matrix
-                self.pc = (1 - self.cc) * self.pc + hs * ( np.sqrt( self.cc * (2 - self.cc) * self.mueff ) ) * self.yilambmean[:, None]
-                covWeights = np.array([ self.weights[i] if i < self.mu else self.dimensions / np.linalg.norm(np.matmul( np.matmul( self.B, np.matmul(np.linalg.inv(self.D), np.transpose(self.B) ) ), yilamb[:, i] ) ) ** 2 for i in range(self.lamb) ])
-                # transpose: xmeanw and zmeanw are line vectors
-                deltaHs = (1 - hs) * self.cc * (2 - self.cc)
-                self.C = (1 + self.c1 * deltaHs - self.c1 - self.cmu * self.weightSum) * self.C + \
-                         self.c1 * ( self.pc * np.transpose(self.pc[0]) ) + \
-                         self.cmu * sum( [ covWeights[i] * yilamb[:, i] * yilamb[:, i][:, None] for i in range(self.lamb) ] )
 
-                # [:, None] transposes a 1D array
+                self.pc = (1 - self.cc) * self.pc + ( ( np.sqrt( self.cc * (2 - self.cc) ) * self.cw ) * ( np.matmul( self.BD, np.transpose(self.zmeanw) ) ) )[:, None]
+                # transpose: xmeanw and zmeanw are line vectors
+                self.C = (1 - self.ccov) * self.C + self.ccov * ( self.pc * np.transpose(self.pc)[0] ) # [:, None] transposes an 1D array
+
+                # adapting sigma
+                self.ps = (1 - self.cs) * self.ps + ( np.sqrt( self.cs * (2 - self.cs) ) * self.cw ) * np.matmul(self.B, self.zmeanw)
+                self.sigma = self.sigma * np.exp( (1/self.ds) * ( ( np.linalg.norm(self.ps) - self.chiN ) / self.chiN ) )
 
                 # updating B and D from C
                 if np.mod(self.FES/self.lamb, self.dimensions/10) < 1:
@@ -235,7 +209,6 @@ class CMAES(object):
                         self.D = self.D + tmp * np.eye(self.dimensions)
 
                     self.D = np.diag( np.sqrt( np.diag(self.D) ) ) # D contains standard deviations now
-
                     self.BD = np.matmul(self.B, self.D) # computing BD for speed up
 
                 # adjusting minimal step size

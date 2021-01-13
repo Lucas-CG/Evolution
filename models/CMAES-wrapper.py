@@ -64,8 +64,7 @@ class CMAES(object):
             genes.extend(sigmas)
             self.pop.append([genes, 0])
 
-        es = cma.CMAEvolutionStrategy(self.dimensions * [0.5], 0.2, {'bounds': [-100, +100]},
-        "maxfevals": 10000 * self.dimensions, "maxiter": np.inf, "tolstagnation": np.inf)
+        es = cma.CMAEvolutionStrategy(self.dimensions * [0.5], 0.2, {'bounds': [-100, +100],"maxfevals": 10000 * self.dimensions, "maxiter": np.inf, "tolstagnation": np.inf} )
 
         self.calculateFitnessPop()
 
