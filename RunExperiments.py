@@ -25,16 +25,21 @@ def runRegPSO():
 def runSSO():
     result = subprocess.check_output(['python3', 'Experiments.py', '--algorithm', 'SSO'])
 
+def runES():
+    result = subprocess.check_output(['python3', 'Experiments.py', '--algorithm', 'ES'])
+
+def runCMAES():
+    result = subprocess.check_output(['python3', 'Experiments.py', '--algorithm', 'CMA-ES'])
+
 def doFunc(func):
     func()
 
 if __name__ == "__main__":
 
-    numAlgs = 8
+    numAlgs = 4
     p = Pool(numAlgs)
-    funList = [runABC, runACO, runAGA, runDE, runGA, runPSO, runRegPSO, runSSO]
-    p.imap(doFunc, funList)
+    funList = [runAGA, runDE, runES, runCMAES]
 
-    # outputs = p.imap(doFunc, funList)
-    # for output in outputs:
-    #     print(output)
+    outputs = p.imap(doFunc, funList)
+    for output in outputs:
+        print(output)

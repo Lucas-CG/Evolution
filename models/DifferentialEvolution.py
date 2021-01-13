@@ -394,7 +394,7 @@ if __name__ == '__main__':
 
     # Initialization
     DE = DifferentialEvolution(func, bounds, optimum=100)
-    DE.setMutation(DE.classicMutation, ("rand", 0.5, 1)) # base, F, nDiffs
+    DE.setMutation(DE.classicMutation, ("rand", 0.5, 2)) # base, F, nDiffs
     DE.setCrossover(DE.classicCrossover, ("bin", 0.5)) # type, CR
     DE.execute()
     results = DE.results

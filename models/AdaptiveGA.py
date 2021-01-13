@@ -65,7 +65,8 @@ class AdaptiveGA(object):
         for i in range(self.popSize):
             ind = []
             genes = np.random.uniform(self.bounds[0], self.bounds[1]).tolist()
-            sigmas = np.random.uniform(0.1, 1, self.dimensions).tolist()
+            # sigmas = np.random.uniform(0.1, 1, self.dimensions).tolist()
+            sigmas = np.random.uniform(60, 60, self.dimensions).tolist()
             # tolist(): convert to python list
             genes.extend(sigmas)
             self.pop.append([genes, 0])
@@ -166,7 +167,7 @@ class AdaptiveGA(object):
                     "minPoints": minPoints,
                     "avgFits": avgFits}
 
-                print(metrics["error"])
+                # print(self.genCount, self.FES, metrics["error"])
 
         except KeyboardInterrupt:
             return
@@ -582,7 +583,7 @@ if __name__ == '__main__':
 
     # Initialization
     # AGA = AdaptiveGA(cec2005.F1(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05)
-    AGA = AdaptiveGA(cec2005.F4(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, numChildren=150, matingPoolSize=30, popSize=30, adaptiveEpsilon=1e-05)
+    AGA = AdaptiveGA(cec2005.F4(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, numChildren=70, matingPoolSize=10, popSize=10, adaptiveEpsilon=1e-5)
 
     AGA.setParentSelection(AGA.noParentSelection, None )
     # AGA.setParentSelection(AGA.tournamentSelection, (True,) )
@@ -605,31 +606,37 @@ if __name__ == '__main__':
     print("time:" + str(end - start))
 
 
-    # import sys
-    # sys.path.append("../../cec2014/python") # Fedora
-    # # sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python") # Windows
-    # import cec2014
-    #
-    # def func(arr):
-    #     return cec2014.cec14(arr, 1)
-    #
-    # bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
-    #
-    # start = time.time()
-    #
-    # # Initialization
-    # AGA = AdaptiveGA(func, bounds, crit="min", optimum=100, tol=1e-08, eliteSize=0, numChildren=200, matingPoolSize=50, popSize=100, adaptiveEpsilon=1e-05)
-    #
+    import sys
+    sys.path.append("../../cec2014/python") # Fedora
+    # sys.path.append("/mnt/c/Users/Lucas/Documents/git/cec2014/python") # Windows
+    import cec2014
+
+    def func(arr):
+        return cec2014.cec14(arr.astype("double"), 1)
+
+    bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ]
+
+    start = time.time()
+
+    # Initialization
+    AGA = AdaptiveGA(func, bounds, crit="min", optimum=100, tol=1e-08, eliteSize=1, numChildren=70, matingPoolSize=10, popSize=10, adaptiveEpsilon=1e-05)
+
     # AGA.setParentSelection(AGA.tournamentSelection, (True,) )
     # AGA.setCrossover(AGA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
     # AGA.setMutation(AGA.adaptiveCreepMutation, (1,)) # prob
     # AGA.setNewPopSelection(AGA.genitor, None)
-    # AGA.execute()
-    # results = AGA.results
-    #
-    # print("AGA: for criterion = " + AGA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
-    # " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
-    # " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
-    #
-    # end = time.time()
-    # print("time:" + str(end - start))
+
+    AGA.setParentSelection(AGA.noParentSelection, None )
+    AGA.setCrossover(AGA.discreteCrossover, (1,)) # prob
+    AGA.setMutation(AGA.adaptiveCreepMutation, (1,)) # prob
+    AGA.setNewPopSelection(AGA.generationalSelection, None)
+
+    AGA.execute()
+    results = AGA.results
+
+    print("AGA: for criterion = " + AGA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
+    " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
+
+    end = time.time()
+    print("time:" + str(end - start))
