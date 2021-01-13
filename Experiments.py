@@ -72,17 +72,12 @@ def runModel(model, queue):
 
 if __name__ == '__main__':
 
-    # functions = [F1, F2, F4, F6, F7, F9, F14]
-    functions = [F1]
-    # funIndexes = [1, 2, 4, 6, 7, 9, 14]
-    funIndexes = [1]
-    print(len(functions), len(funIndexes))
-    # optimums = [100, 200, 400, 600, 700, 900, 1400]
-    optimums = [100]
+    functions = [F1, F2, F4, F6, F7, F9, F14]
+    funIndexes = [1, 2, 4, 6, 7, 9, 14]
+    optimums = [100, 200, 400, 600, 700, 900, 1400]
     FESThresholds = [0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
     numRuns = 25
-    # dimsList = [10, 30]
-    dimsList = [10]
+    dimsList = [10, 30]
 
     for dims in dimsList:
         bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ]
