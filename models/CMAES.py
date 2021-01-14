@@ -42,6 +42,7 @@ class CMAES(object):
         self.pop = []
 
         startPoint = [np.random.uniform(self.bounds[0][i], self.bounds[1][i]) for i in range(self.dimensions)]
+        # self.es = cma.CMAEvolutionStrategy(startPoint, 60.0, {'bounds': [-100, +100],"maxfevals": self.maxFES, "maxiter": np.inf, "verbose": -1} )
         self.es = cma.CMAEvolutionStrategy(startPoint, 60.0, {'bounds': [-100, +100],"maxfevals": self.maxFES, "maxiter": np.inf, "tolstagnation": np.inf, "tolfun": -np.inf, "tolflatfitness": np.inf, "tolfunhist": -np.inf, "verbose": -1} )
         # most tolerances are disabled - for analysis -, except 'noeffectaxis'
 
@@ -111,16 +112,16 @@ if __name__ == '__main__':
     import cec2014
 
     def func(arr):
-        return cec2014.cec14(arr, 3)
+        return cec2014.cec14(arr, 9)
 
-    dims = 10
+    dims = 30
     bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ] # 10-dimensional sphere (optimum: 0)
 
     start = time.time()
 
     # Initialization
     # es = CMAES(cec2005.F3(dims), bounds, optimum=-450)
-    es = CMAES(func, bounds, optimum=300)
+    es = CMAES(func, bounds, optimum=900)
     es.execute()
     results = es.results
 

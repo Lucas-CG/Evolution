@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(description="Run experiments with an algorithm 
 parser.add_argument("--algorithm", dest='algorithm', help="Name of the algorithm (can be ACO, ABC, DE, GA, AGA, PSO, RegPSO, SSO, ES or CMA-ES).")
 algorithm = parser.parse_args(sys.argv[1:]).algorithm.upper()
 
+
 if algorithm == "ACO":
     from models import AntColonyOptimization
 
@@ -99,7 +100,6 @@ if __name__ == '__main__':
 
         for i in range(len(functions)):
 
-            print(i)
             plotFileName = pathName + "/" + algorithm + "_F" + str(funIndexes[i]) + "_" + str(dims) + "D_Plot.csv"
 
             with open(plotFileName, "w") as resultsFile:

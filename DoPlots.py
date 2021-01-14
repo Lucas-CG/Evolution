@@ -30,7 +30,7 @@ for dims in dimsList:
 
         for funIndex in funIndexes:
 
-            pathName = "Results/" + algorithms[algIndex]
+            pathName = "Results/" + str(dims) + "D/" + algorithms[algIndex]
             plotFileName = pathName + "/" + algorithms[algIndex] + "_F" + str(funIndex) + "_" + str(dims) + "D_Plot.csv"
             bestPlotFileName = pathName + "/" + algorithms[algIndex] + "_F" + str(funIndex) + "_" + str(dims) + "D_BestPlot.csv"
             worstPlotFileName = pathName + "/" + algorithms[algIndex] + "_F" + str(funIndex) + "_" + str(dims) + "D_WorstPlot.csv"
@@ -76,7 +76,7 @@ for dims in dimsList:
     plt.rcParams['axes.formatter.use_locale'] = True
 
     # Creating result path
-    pathName = "Results/Plots"
+    pathName = "Results/" + str(dims) + "D/" + "Plots"
     makedirs(pathName, exist_ok=True)
 
     # Plotting means
