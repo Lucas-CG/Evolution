@@ -8,7 +8,7 @@ funIndexes = [1, 2, 4, 6, 7, 9, 14]
 dimsList = [10, 30]
 colors = ["black", "royalblue", "brown", "gold", "lawngreen", "purple", "orangered", "deeppink"]
 # algorithms = ["ABC", "ACO", "AGA", "DE", "GA", "PSO", "RegPSO", "SSO", "ES", "CMA-ES"]
-algorithms = ["DE", "AGA", "ES", "CMA-ES"]
+algorithms = ["DE", "AGA", "ES", "CMA-ES", "CMA-ES-10X"]
 
 meanFES = {}
 meanErrors = {}

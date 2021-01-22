@@ -31,15 +31,20 @@ def runES():
 def runCMAES():
     result = subprocess.check_output(['python3', 'Experiments.py', '--algorithm', 'CMA-ES'])
 
+def runCMAES10X():
+    result = subprocess.check_output(['python3', 'Experiments.py', '--algorithm', 'CMA-ES-10X'])
+
 def doFunc(func):
     func()
 
 if __name__ == "__main__":
 
-    numAlgs = 4
-    p = Pool(numAlgs)
-    funList = [runAGA, runDE, runES, runCMAES]
+    # numAlgs = 5
+    # p = Pool(numAlgs)
+    # funList = [runAGA, runDE, runES, runCMAES, runCMAES10X]
+    #
+    # outputs = p.imap(doFunc, funList)
+    # for output in outputs:
+    #     print(output)
 
-    outputs = p.imap(doFunc, funList)
-    for output in outputs:
-        print(output)
+    runCMAES10X()

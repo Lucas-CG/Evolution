@@ -575,35 +575,35 @@ if __name__ == '__main__':
     # Test of the GA's performance over CEC2005's F1 (shifted sphere)
 
     import time
-    from optproblems import cec2005
-
-    bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
-
-    start = time.time()
-
-    # Initialization
-    # AGA = AdaptiveGA(cec2005.F1(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05)
-    AGA = AdaptiveGA(cec2005.F4(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, numChildren=70, matingPoolSize=10, popSize=10, adaptiveEpsilon=1e-5)
-
-    AGA.setParentSelection(AGA.noParentSelection, None )
-    # AGA.setParentSelection(AGA.tournamentSelection, (True,) )
-    # AGA.setCrossover(AGA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
-    AGA.setCrossover(AGA.discreteCrossover, (1,)) # prob
-    # AGA.setCrossover(AGA.intermediateCrossover, (1,)) # prob
-    # AGA.setCrossover(AGA.noCrossover, None)
-    AGA.setMutation(AGA.adaptiveCreepMutation, (1,)) # prob
-    # AGA.setNewPopSelection(AGA.genitor, None)
-    AGA.setNewPopSelection(AGA.generationalSelection, None)
-    # AGA.setNewPopSelection(AGA.tournamentSelection, None)
-    AGA.execute()
-    results = AGA.results
-
-    print("AGA: for criterion = " + AGA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
-    " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
-    " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
-
-    end = time.time()
-    print("time:" + str(end - start))
+    # from optproblems import cec2005
+    #
+    # bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ] # 10-dimensional sphere (optimum: 0)
+    #
+    # start = time.time()
+    #
+    # # Initialization
+    # # AGA = AdaptiveGA(cec2005.F1(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=0, matingPoolSize=70, popSize=70, adaptiveEpsilon=1e-05)
+    # AGA = AdaptiveGA(cec2005.F4(10), bounds, crit="min", optimum=-450, tol=1e-08, eliteSize=1, numChildren=70, matingPoolSize=10, popSize=10, adaptiveEpsilon=1e-5)
+    #
+    # AGA.setParentSelection(AGA.noParentSelection, None )
+    # # AGA.setParentSelection(AGA.tournamentSelection, (True,) )
+    # # AGA.setCrossover(AGA.blxAlphaCrossover, (0.5, 1)) # alpha, prob
+    # AGA.setCrossover(AGA.discreteCrossover, (1,)) # prob
+    # # AGA.setCrossover(AGA.intermediateCrossover, (1,)) # prob
+    # # AGA.setCrossover(AGA.noCrossover, None)
+    # AGA.setMutation(AGA.adaptiveCreepMutation, (1,)) # prob
+    # # AGA.setNewPopSelection(AGA.genitor, None)
+    # AGA.setNewPopSelection(AGA.generationalSelection, None)
+    # # AGA.setNewPopSelection(AGA.tournamentSelection, None)
+    # AGA.execute()
+    # results = AGA.results
+    #
+    # print("AGA: for criterion = " + AGA.crit + ", reached optimum of " + str(results["minFits"][-1]) +
+    # " (error of " + str(results["errors"][-1]) + ") (points " + str(results["minPoints"][-1]) + ") with " + str(results["generations"][-1]) + " generations" +
+    # " and " + str(results["FESCounts"][-1]) + " fitness evaluations" )
+    #
+    # end = time.time()
+    # print("time:" + str(end - start))
 
 
     import sys
@@ -612,14 +612,15 @@ if __name__ == '__main__':
     import cec2014
 
     def func(arr):
-        return cec2014.cec14(arr.astype("double"), 1)
+        return cec2014.cec14(arr.astype("double"), 6)
 
-    bounds = [ [-100 for i in range(10)], [100 for i in range(10)] ]
+    bounds = [ [-100 for i in range(30)], [100 for i in range(30)] ]
 
     start = time.time()
 
     # Initialization
-    AGA = AdaptiveGA(func, bounds, crit="min", optimum=100, tol=1e-08, eliteSize=1, numChildren=70, matingPoolSize=10, popSize=10, adaptiveEpsilon=1e-05)
+    # AGA = AdaptiveGA(func, bounds, crit="min", optimum=100, tol=1e-08, eliteSize=1, numChildren=70, matingPoolSize=10, popSize=10, adaptiveEpsilon=1e-05)
+    AGA = AdaptiveGA(func, bounds, crit="min", optimum=600, tol=1e-08, eliteSize=1, numChildren=300, matingPoolSize=45, popSize=45, adaptiveEpsilon=1e-05)
 
     # AGA.setParentSelection(AGA.tournamentSelection, (True,) )
     # AGA.setCrossover(AGA.blxAlphaCrossover, (0.5, 1)) # alpha, prob

@@ -11,7 +11,7 @@ import cec2014
 import multiprocessing as mp
 
 parser = argparse.ArgumentParser(description="Run experiments with an algorithm specified in the input.")
-parser.add_argument("--algorithm", dest='algorithm', help="Name of the algorithm (can be ACO, ABC, DE, GA, AGA, PSO, RegPSO, SSO, ES or CMA-ES).")
+parser.add_argument("--algorithm", dest='algorithm', help="Name of the algorithm (can be ACO, ABC, DE, GA, AGA, PSO, RegPSO, SSO, ES, CMA-ES or CMA-ES-10X).")
 algorithm = parser.parse_args(sys.argv[1:]).algorithm.upper()
 
 
@@ -42,7 +42,7 @@ if algorithm == "SSO":
 if algorithm == "ES":
     from models import AdaptiveGA
 
-if algorithm == "CMA-ES":
+if algorithm == "CMA-ES" or algorithm == "CMA-ES-10X":
     from models import CMAES
 
 def F1(arr):
@@ -212,6 +212,13 @@ if __name__ == '__main__':
                     p = mp.Process(target=runModel, args=(model, queue,))
                     p.start()
                     processes.append(p)
+
+                if algorithm == "CMA-ES-10X":
+                    model = CMAES.CMAES(functions[i], bounds, optimum=optimums[i], popSize=10 * dims)
+                    p = mp.Process(target=runModel, args=(model, queue,))
+                    p.start()
+                    processes.append(p)
+
 
                 # limit of 8 processes per algorithm
                 # if (j == 7 or j == 15 or j == 24):

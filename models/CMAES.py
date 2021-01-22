@@ -4,7 +4,7 @@ import numpy as np
 class CMAES(object):
     """Wrapper for the CMA-ES/pycma implementation for minimization."""
 
-    def __init__(self, func, bounds, optimum=-450, maxFES=None, tol=1e-08):
+    def __init__(self, func, bounds, popSize=None, optimum=-450, maxFES=None, tol=1e-08):
         """Initializes the population. Arguments:
         - func: a function name (the optimization problem to be resolved)
         - bounds: 2D array. bounds[0] has lower bounds; bounds[1] has upper bounds. They also define the size of individuals.
@@ -22,6 +22,7 @@ class CMAES(object):
         self.func = func
         self.bounds = bounds
         self.dimensions = len(self.bounds[0])
+        self.popSize = popSize
         self.optimum = optimum
         self.tol = tol
         self.crit = "min"
@@ -43,7 +44,8 @@ class CMAES(object):
 
         startPoint = [np.random.uniform(self.bounds[0][i], self.bounds[1][i]) for i in range(self.dimensions)]
         # self.es = cma.CMAEvolutionStrategy(startPoint, 60.0, {'bounds': [-100, +100],"maxfevals": self.maxFES, "maxiter": np.inf, "verbose": -1} )
-        self.es = cma.CMAEvolutionStrategy(startPoint, 60.0, {'bounds': [-100, +100],"maxfevals": self.maxFES, "maxiter": np.inf, "tolstagnation": np.inf, "tolfun": -np.inf, "tolflatfitness": np.inf, "tolfunhist": -np.inf, "verbose": -1} )
+        if (self.popSize == None): self.es = cma.CMAEvolutionStrategy(startPoint, 60.0, {'bounds': [-100, +100],"maxfevals": self.maxFES, "maxiter": np.inf, "tolstagnation": np.inf, "tolfun": -np.inf, "tolflatfitness": np.inf, "tolfunhist": -np.inf, "verbose": -1} )
+        else: self.es = cma.CMAEvolutionStrategy(startPoint, 60.0, {'bounds': [-100, +100],"maxfevals": self.maxFES, "maxiter": np.inf, "tolstagnation": np.inf, "tolfun": -np.inf, "tolflatfitness": np.inf, "tolfunhist": -np.inf, "verbose": -1, "popsize": self.popSize} )
         # most tolerances are disabled - for analysis -, except 'noeffectaxis'
 
 
@@ -112,7 +114,7 @@ if __name__ == '__main__':
     import cec2014
 
     def func(arr):
-        return cec2014.cec14(arr, 9)
+        return cec2014.cec14(arr, 6)
 
     dims = 30
     bounds = [ [-100 for i in range(dims)], [100 for i in range(dims)] ] # 10-dimensional sphere (optimum: 0)
@@ -121,7 +123,7 @@ if __name__ == '__main__':
 
     # Initialization
     # es = CMAES(cec2005.F3(dims), bounds, optimum=-450)
-    es = CMAES(func, bounds, optimum=900)
+    es = CMAES(func, bounds, popSize=300, optimum=600)
     es.execute()
     results = es.results
 
